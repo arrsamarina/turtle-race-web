@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Меню - Черепашьи бега</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="turtles-background" id="turtlesBackground"></div>
+  
+  <div class="main-container">
+    <div class="content-box">
+      <h1 class="title-page">МЕНЮ</h1>
+      
+      <div class="menu-items">
+        <button class="menu-btn" onclick="handleMenuClick('open-rooms')">ИГРОВЫЕ КОМНАТЫ</button>
+        <button class="menu-btn" onclick="handleMenuClick('create-room')">СОЗДАТЬ КОМНАТУ</button>
+        <button class="menu-btn" onclick="handleMenuClick('game-rules')">ПРАВИЛА ИГРЫ</button>
+        <button class="menu-btn" onclick="handleMenuClick('logout')">ВЫЙТИ</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/main.js"></script>
+  <script>
+    // Инициализация декоративных черепах для страницы меню
+    initTurtlesBackground('turtlesBackground');
+
+    // Обработка кликов по кнопкам меню
+    async function handleMenuClick(action) {
+      console.log('Выбрано действие:',action);
+      
+      // Переходы на соответствующие страницы
+      if (action === 'open-rooms') {
+        window.location.href = 'open-rooms.html';
+      } else if (action === 'create-room') {
+        window.location.href = 'create-room.html';
+      } else if (action === 'game-rules') {
+        window.location.href = 'game-rules.html';
+      } else if (action === 'logout') {
+        // Выход из аккаунта
+        try {
+          await apiLogout();
+        } catch (error) {
+          console.error('[menu] Ошибка при выходе:', error);
+        } finally {
+          // Всегда перенаправляем на страницу входа
+          window.location.href = 'login.html';
+        }
+      }
+    }
+  </script>
+</body>
+</html>
+  

@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Создание комнаты - Черепашьи бега</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="turtles-background" id="turtlesBackground"></div>
+
+  <div class="main-container">
+    <div class="content-box create-room-box">
+      <div class="player-count-section">
+        <div class="player-count-box">
+          <h2 class="player-count-title">КОЛИЧЕСТВО ИГРОКОВ</h2>
+          <div class="player-count-options">
+            <!-- Убрали выбор по умолчанию: ни одна кнопка не активна, пока пользователь не кликнет -->
+            <button class="player-count-btn players-btn" data-players-count="2">
+              <span class="player-count-number">2</span>
+            </button>
+            <button class="player-count-btn players-btn" data-players-count="3">
+              <span class="player-count-number">3</span>
+            </button>
+            <button class="player-count-btn players-btn" data-players-count="4">
+              <span class="player-count-number">4</span>
+            </button>
+            <button class="player-count-btn players-btn" data-players-count="5">
+              <span class="player-count-number">5</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="turn-duration-section">
+        <div class="turn-duration-box">
+          <h2 class="turn-duration-title">ПРОДОЛЖИТЕЛЬНОСТЬ ХОДА</h2>
+          <div class="turn-duration-options">
+            <button class="turn-duration-btn duration-btn active" data-turn-duration="sec30">
+              <span class="turn-duration-text">30 СЕКУНД</span>
+            </button>
+            <button class="turn-duration-btn duration-btn" data-turn-duration="sec60">
+              <span class="turn-duration-text">60 СЕКУНД</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="create-button-section">
+        <button type="button" class="btn create-btn">СОЗДАТЬ КОМНАТУ</button>
+      </div>
+
+      <div class="back-to-menu-section">
+        <div class="back-to-menu">
+          <a href="menu.html" class="back-to-menu-link">вернуться в меню</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/main.js"></script>
+
+  <script>
+    initTurtlesBackground('turtlesBackground');
+
+    if (!checkAuth()) {
+      window.location.href = 'login.html';
+    }
+
+
+    // Дефолты: игроки=2, время=30
+    let selectedPlayersCount = 2;
+    let selectedTurnDuration = 'sec30';
+
+    // --- выбор игроков ---
+    const playerButtons = document.querySelectorAll('.players-btn');
+    playerButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const count = parseInt(btn.getAttribute('data-players-count'), 10);
+        if (!Number.isInteger(count) || count < 2 || count > 5) {
+          alert('Ошибка: неверное количество игроков');
+          return;
+        }
+        selectedPlayersCount = count;
+
+        playerButtons.forEach(b => b.classList.remove('active', 'selected', 'is-active'));
+        btn.classList.add('active', 'selected', 'is-active');
+      });
+    });
+
+    // --- выбор длительности ---
+    const durationButtons = document.querySelectorAll('.duration-btn');
+    durationButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        selectedTurnDuration = btn.getAttribute('data-turn-duration');
+
+        durationButtons.forEach(b => b.classList.remove('active', 'selected', 'is-active'));
+        btn.classList.add('active', 'selected', 'is-active');
+      });
+    });
+
+    function getTokenStrict() {
+      const token = window.localStorage.getItem('token');
+      console.log('[create-room] token from localStorage =', token);
+      return token;
+    }
+
+    // --- железное считывание из DOM перед отправкой ---
+    function readPlayersCountFromUI() {
+      const btn = document.querySelector('.players-btn.active, .players-btn.selected, .players-btn.is-active');
+      const v = btn ? parseInt(btn.getAttribute('data-players-count'), 10) : NaN;
+      return v;
+    }
+
+    function readTurnDurationFromUI() {
+      const btn = document.querySelector('.duration-btn.active, .duration-btn.selected, .duration-btn.is-active');
+      return btn ? btn.getAttribute('data-turn-duration') : null;
+    }
+
+
+    document.querySelector('.create-btn').addEventListener('click', async () => {
+      const token = getTokenStrict();
+
+      if (!token) {
+        alert('Вы не авторизованы, войдите заново');
+        window.location.href = 'login.html';
+        return;
+      }
+
+      // 1) читаем фактические значения из UI
+      const playersCountToSend = readPlayersCountFromUI();
+      const turnDurationToSend = readTurnDurationFromUI();
+
+      console.log('[create-room] 📌 UI snapshot before send:', {
+        playersCountToSend,
+        turnDurationToSend,
+        selectedPlayersCount_var: selectedPlayersCount,
+        selectedTurnDuration_var: selectedTurnDuration,
+      });
+
+      if (!Number.isInteger(playersCountToSend) || playersCountToSend < 2 || playersCountToSend > 5) {
+        alert('Пожалуйста, выберите количество игроков (2–5).');
+        return;
+      }
+
+      if (!['sec30','sec60'].includes(turnDurationToSend)) {
+        alert('Пожалуйста, выберите длительность хода (30/60).');
+        return;
+      }
+
+      // 2) создаём комнату (все комнаты открытые)
+      try {
+        const res = await apiCreateRoom({
+          token,
+          players_count: playersCountToSend,
+          turn_duration: turnDurationToSend
+        });
+
+        console.log('[create-room] Ответ create_room:', res);
+
+        if (res.status === 'ok') {
+          // По документации create_game_room возвращает:
+          // { "status": "ok", "game": { "id": 1, "players_max": 2, ... }, "me": { ... } }
+          const gameId =
+            res.game?.id ||          // Основной вариант по новой документации
+            res.id_game ||           // Fallback для старого формата
+            res.game?.id_game ||
+            res.game_id ||
+            res.data?.game?.id ||
+            res.data?.id_game ||
+            res.data?.game_id;
+
+          if (!gameId) {
+            console.error('[create-room] Не удалось найти ID игры в ответе:', res);
+            alert('Ошибка: сервер не вернул ID игры');
+            return;
+          }
+
+          // Передаём в лобби выбранное количество игроков,
+          // чтобы корректно показать ожидаемое число слотов.
+          window.location.href = `room-lobby.html?id=${gameId}&slots=${playersCountToSend}`;
+        } else {
+          // Обработка ошибок
+          let errorMessage = res.message || res.error || 'unknown_error';
+          if (res.error === 'invalid_players_count') {
+            errorMessage = 'Недопустимое количество игроков. Допустимо: 2, 3, 4 или 5';
+          } else if (res.error === 'invalid_turn_duration') {
+            errorMessage = 'Недопустимая длительность хода. Допустимо: sec30 или sec60';
+          } else if (res.error === 'invalid_token') {
+            errorMessage = 'Неверный токен. Требуется авторизация';
+            window.location.href = 'login.html';
+            return;
+          }
+          alert('Ошибка: ' + errorMessage);
+        }
+      } catch (e) {
+        console.error(e);
+        alert('Ошибка: ' + e.message);
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Открытые комнаты - Черепашьи бега</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="turtles-background" id="turtlesBackground"></div>
+  
+  <div class="main-container">
+    <div class="content-box">
+      <h1 class="title-page">ОТКРЫТЫЕ КОМНАТЫ</h1>
+      
+      <div class="rooms-list" id="roomsList">
+        <!-- Комнаты будут добавлены через JavaScript -->
+      </div>
+
+      <div class="rooms-navigation">
+        <button class="nav-arrow-btn" id="btnUp" onclick="scrollRooms('up')" disabled>
+          <img src="icons/arrow_up.svg" alt="Вверх" class="nav-arrow-icon">
+        </button>
+        <button class="nav-arrow-btn" id="btnDown" onclick="scrollRooms('down')">
+          <img src="icons/arrow_down.svg" alt="Вниз" class="nav-arrow-icon">
+        </button>
+      </div>
+
+      <div class="back-to-menu">
+        <a href="menu.html" class="back-to-menu-link">вернуться в меню</a>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/main.js"></script>
+  <script>
+    // Инициализация декоративных черепах
+    initTurtlesBackground('turtlesBackground');
+
+    // Проверка авторизации
+    if (!checkAuth()) {
+      window.location.href = 'login.html';
+    }
+
+    let allRooms = [];
+    let currentStartIndex = 0;
+    const roomsPerPage = 3;
+
+    // Загрузка комнат с сервера
+    async function loadRooms() {
+      try {
+        console.log('[open-rooms] Загрузка списка комнат...');
+        const result = await apiListRooms();
+        console.log('[open-rooms] Ответ от сервера:', result);
+        
+        // Проверяем разные форматы ответа
+        // SQL-функция list_open_rooms возвращает массив напрямую
+        let roomsArray = [];
+        if (Array.isArray(result)) {
+          // Если результат - это массив, используем его напрямую
+          roomsArray = result;
+        } else if (result && Array.isArray(result.rooms)) {
+          roomsArray = result.rooms;
+        } else if (result && result.data && Array.isArray(result.data.rooms)) {
+          roomsArray = result.data.rooms;
+        }
+        
+        if (Array.isArray(roomsArray) && roomsArray.length > 0) {
+          console.log('[open-rooms] Получено комнат:', roomsArray.length);
+          
+          // Преобразуем данные из формата API в формат для отображения
+          allRooms = roomsArray.map(room => {
+            const mapped = {
+              id: room.id_game || room.id || room.game_id,
+              // Логин создателя (list_open_rooms возвращает owner_login)
+              owner: room.owner_login || room.creator_login || room.login || room.owner || null,
+              // Показываем комнаты как ROOM+номер + ник создателя
+              name: `ROOM${room.id_game || room.id || room.game_id}` + (room.owner_login || room.creator_login || room.login || room.owner ? ` (${room.owner_login || room.creator_login || room.login || room.owner})` : ''),
+              players: room.players_current || room.players || room.players_count || 0,
+              maxPlayers: room.players_max || room.max_players || room.players_count_max || 0,
+              isStarted: room.has_started || false, // Используем поле has_started из ответа API
+              iAmInRoom: room.i_am_in_room || false // Пользователь уже в этой комнате?
+            };
+            console.log('[open-rooms] Комната:', mapped);
+            return mapped;
+          });
+          
+          console.log('[open-rooms] Все комнаты (backend уже отфильтровал правильно):', allRooms);
+          
+          // Backend уже фильтрует правильно: i_am_in_room = true OR (has_started = false AND players_current < players_max)
+          // Поэтому дополнительная фильтрация на фронте не нужна - показываем все комнаты, которые вернул backend
+          
+          console.log('[open-rooms] Комнаты после фильтрации:', allRooms.length);
+          initRoomsList();
+        } else {
+          // Пустой массив - это нормально, просто нет доступных комнат
+          console.log('[open-rooms] Нет доступных комнат (пустой массив)');
+          allRooms = [];
+          initRoomsList();
+        }
+      } catch (error) {
+        console.error('[open-rooms] Ошибка загрузки комнат:', error);
+        if (typeof handleApiError === 'function') {
+          handleApiError(error);
+        }
+        allRooms = [];
+        initRoomsList();
+      }
+    }
+
+    // Инициализация списка комнат
+    function initRoomsList() {
+      renderRooms();
+      updateNavigationButtons();
+    }
+
+    // Отрисовка комнат
+    function renderRooms() {
+      const roomsList = document.getElementById('roomsList');
+      roomsList.innerHTML = '';
+
+      if (allRooms.length === 0) {
+        roomsList.innerHTML = '<div style="text-align: center; padding: 20px; color: #666;">Нет доступных комнат</div>';
+        updateNavigationButtons();
+        return;
+      }
+
+      const visibleRooms = allRooms.slice(currentStartIndex, currentStartIndex + roomsPerPage);
+
+      visibleRooms.forEach((room, index) => {
+        const roomItem = document.createElement('div');
+        roomItem.className = 'room-item';
+        
+        // Если пользователь уже в комнате, добавляем специальный класс
+        if (room.iAmInRoom) {
+          roomItem.classList.add('room-item--my-room');
+        }
+        
+        roomItem.onclick = function() {
+          handleRoomClick(room);
+        };
+
+        // Если пользователь уже в комнате, показываем специальный текст
+        const roomStatus = room.iAmInRoom ? ' (Вы в этой комнате)' : '';
+
+        roomItem.innerHTML = `
+          <span class="room-name">${room.name}${roomStatus}</span>
+          <div class="room-players">
+            <span class="players-count">${room.players}/${room.maxPlayers}</span>
+            <img src="icons/turtle.svg" alt="Игроки" class="turtle-icon">
+          </div>
+          <img src="icons/arrow_right.svg" alt="Выбрать" class="arrow-right-icon">
+        `;
+
+        roomsList.appendChild(roomItem);
+      });
+    }
+
+    // Обновление состояния кнопок навигации
+    function updateNavigationButtons() {
+      const btnUp = document.getElementById('btnUp');
+      const btnDown = document.getElementById('btnDown');
+
+      // Кнопка "вверх" активна, если есть комнаты выше
+      btnUp.disabled = currentStartIndex === 0;
+      
+      // Кнопка "вниз" активна, если есть комнаты ниже
+      btnDown.disabled = currentStartIndex + roomsPerPage >= allRooms.length;
+    }
+
+    // Прокрутка списка комнат
+    function scrollRooms(direction) {
+      if (direction === 'up' && currentStartIndex > 0) {
+        currentStartIndex--;
+      } else if (direction === 'down' && currentStartIndex + roomsPerPage < allRooms.length) {
+        currentStartIndex++;
+      }
+
+      renderRooms();
+      updateNavigationButtons();
+    }
+
+    // Обработка клика по комнате
+    async function handleRoomClick(room) {
+      console.log('[open-rooms] Выбрана комната:', room);
+      
+      // Если пользователь уже в этой комнате
+      if (room.iAmInRoom) {
+        // Если игра уже началась, переходим сразу на game.html
+        if (room.isStarted) {
+          console.log('[open-rooms] Пользователь уже в комнате, игра началась, переход на game.html');
+          window.location.href = `game.html?id=${room.id}`;
+        } else {
+          // Игра еще не началась, переходим в лобби
+          console.log('[open-rooms] Пользователь уже в комнате, игра не началась, переход в лобби');
+          const slots = room.maxPlayers || '';
+          const slotsParam = slots ? `&slots=${slots}` : '';
+          window.location.href = `room-lobby.html?id=${room.id}${slotsParam}`;
+        }
+        return;
+      }
+      
+      try {
+        // Присоединяемся к комнате через API
+        const result = await apiJoinRoom(room.id);
+        console.log('[open-rooms] Результат присоединения:', result);
+        
+        // ВАЖНО:
+        // SQL join_game_room при успехе возвращает сразу get_game_state_json (игровое состояние) БЕЗ поля status='ok'.
+        // Ошибки же возвращаются либо со status='error' (и тогда apiRequest уже кинет исключение),
+        // либо через HTTP-код != 200.
+        //
+        // Поэтому здесь мы считаем УСПЕХОМ любой ответ, у которого нет status='error'.
+        if (!result || result.status === 'error') {
+          alert('Ошибка при присоединении к комнате: ' + (result?.error || 'Неизвестная ошибка'));
+          return;
+        }
+
+        // Проверяем, началась ли игра (есть ли current_turn)
+        // Если игра уже началась, переходим сразу на game.html
+        const gameAlreadyStarted = !!result.current_turn;
+        if (gameAlreadyStarted) {
+          console.log('[open-rooms] Игра уже началась (current_turn != null), переход на game.html');
+          window.location.href = `game.html?id=${room.id}`;
+          return;
+        }
+
+        // Игра еще не началась, переходим в лобби
+        const slots = room.maxPlayers || '';
+        const slotsParam = slots ? `&slots=${slots}` : '';
+        window.location.href = `room-lobby.html?id=${room.id}${slotsParam}`;
+      } catch (error) {
+        handleApiError(error);
+      }
+    }
+
+    // Инициализация при загрузке страницы
+    loadRooms();
+    
+    // Периодическое обновление списка комнат (каждые 3 секунды)
+    setInterval(() => {
+      loadRooms();
+    }, 3000);
+  </script>
+</body>
+</html>
+

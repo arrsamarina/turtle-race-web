@@ -1,0 +1,1820 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Игровое поле – Черепашьи бега</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="game-body">
+  <div class="game-page">
+    <!-- Ряд игровых черепашек -->
+    <div class="game-turtles-row" id="gameTurtlesRow">
+      <!-- Черепашки будут добавлены через JavaScript -->
+    </div>
+
+    <!-- Игровое поле -->
+    <div class="game-board">
+      <div class="board-track">
+        <!-- Контейнер для черепашек на треке -->
+        <div class="board-turtles" id="boardTurtles"></div>
+
+        <!-- Маркер старта -->
+        <div class="start-marker">
+          <div class="start-marker__flag">
+            <img src="images/flags/flag_start.svg" alt="Старт">
+          </div>
+        </div>
+
+        <!-- Клетки трека -->
+        <div class="track-tiles">
+          <div class="track-tile" data-cell="0"></div>
+          <div class="track-tile" data-cell="1"></div>
+          <div class="track-tile" data-cell="2"></div>
+          <div class="track-tile" data-cell="3"></div>
+          <div class="track-tile" data-cell="4"></div>
+          <div class="track-tile" data-cell="5"></div>
+          <div class="track-tile" data-cell="6"></div>
+          <div class="track-tile" data-cell="7"></div>
+          <div class="track-tile" data-cell="8"></div>
+          <div class="track-tile" data-cell="9"></div>
+        </div>
+
+        <!-- Маркер финиша -->
+        <div class="finish-marker">
+          <div class="finish-marker__flag">
+            <img src="images/flags/flag_finish.svg" alt="Финиш">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Серая нижняя панель управления -->
+    <div class="game-ui">
+      <div class="turtles-background" id="gameUiTurtles"></div>
+      <!-- Левая панель: список игроков + индикатор хода -->
+      <div class="ui-left">
+        <div class="ui-panel">
+          <div class="slot-title">игроки</div>
+
+          <ol class="player-list" id="playersList">
+            <!-- Список игроков будет заполнен через JavaScript из get_game_state_json -->
+          </ol>
+
+          <div class="turn-status" id="turnStatus">
+            <div class="turn-status__label">ОЖИДАНИЕ</div>
+            <div class="turn-status__timer" id="turnTimer">00:00</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Центральная панель: сброс и колода -->
+      <div class="ui-center">
+        <div class="ui-panel">
+          <div class="center-titles">
+            <div class="slot-title">СБРОС</div>
+            <div class="slot-title">КОЛОДА</div>
+          </div>
+          <div class="center-slots">
+            <div class="slot-wrapper">
+              <div class="slot" id="discardPile">
+                <img src="images/cards/empty_card.svg" alt="Стопка сброса">
+              </div>
+            </div>
+
+            <div class="slot-wrapper">
+              <div class="slot" id="deckPile">
+                <img src="images/cards/deck.svg" alt="Колода карт">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Правая панель: карты на руках -->
+      <div class="ui-right">
+        <div class="ui-panel">
+          <div class="slot-title">ваши карты</div>
+
+          <div class="hand-cards" id="handCards">
+            <!-- Карты на руках будут заполнены через JavaScript из get_game_state_json -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Столбик справа: черепаха и кнопки -->
+      <div class="ui-right-column">
+        <div class="my-turtle" id="myTurtlePanel">
+          <div class="my-turtle__label">ВАША ЧЕРЕПАХА</div>
+          <img
+            src="images/turtles/green_turtle.svg"
+            alt="Ваша черепаха"
+            class="my-turtle__image"
+            id="myTurtleImage"
+          >
+        </div>
+
+        <button class="button button--column" id="rulesButton">ПРАВИЛА</button>
+        <button class="button button--danger button--column" id="exitButton">ВЫЙТИ</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Модальное окно для выбора черепахи -->
+  <div class="turtle-select-modal" id="turtleSelectModal" style="display: none;">
+    <div class="turtle-select-modal__overlay"></div>
+    <div class="turtle-select-modal__content">
+      <h2 class="turtle-select-modal__title">Выберите черепаху</h2>
+      <div class="turtle-select-modal__turtles" id="turtleSelectModalTurtles">
+        <!-- Черепахи будут добавлены через JavaScript -->
+      </div>
+      <button class="turtle-select-modal__close" id="turtleSelectModalClose">Отмена</button>
+    </div>
+  </div>
+
+  <!-- Модальное окно итогов игры -->
+  <div class="game-results-modal" id="gameResultsModal" style="display: none;">
+    <div class="game-results-modal__overlay"></div>
+    <div class="game-results-modal__content">
+      <h2 class="game-results-modal__title">ИТОГИ ИГРЫ</h2>
+      <div class="game-results-modal__table-container">
+        <table class="game-results-table" id="gameResultsTable">
+          <thead>
+            <tr>
+              <th>Место</th>
+              <th>Игрок</th>
+              <th>Черепаха</th>
+            </tr>
+          </thead>
+          <tbody id="gameResultsTableBody">
+            <!-- Результаты будут добавлены через JavaScript -->
+          </tbody>
+        </table>
+      </div>
+      <div class="game-results-modal__message" id="gameResultsMessage" style="display: none;">
+        Игра завершена без победителя
+      </div>
+      <button class="game-results-modal__exit" id="gameResultsExit">Выйти</button>
+    </div>
+  </div>
+
+  <!-- Модальное окно уведомления о выходе из игры -->
+  <div class="game-exit-modal" id="gameExitModal" style="display: none;">
+    <div class="game-exit-modal__overlay"></div>
+    <div class="game-exit-modal__content">
+      <h2 class="game-exit-modal__title">ВЫ ВЫШЛИ ИЗ ЭТОЙ ИГРЫ</h2>
+      <button class="game-exit-modal__button" id="gameExitModalButton">ВЕРНУТЬСЯ В МЕНЮ</button>
+    </div>
+  </div>
+
+  <!-- Модальное окно правил игры -->
+  <div class="game-rules-modal" id="gameRulesModal" style="display: none;">
+    <div class="game-rules-modal__overlay"></div>
+    <div class="game-rules-modal__content">
+      <h2 class="game-rules-modal__title">ПРАВИЛА ИГРЫ</h2>
+      <div class="game-rules-modal__content-text">
+        <p>Перед началом игры каждый игрок случайным образом получает пять карт из колоды и черепаху определённого цвета, это он увидит в своей панели управления внизу экрана. Игра ведётся с скрытой информацией: игроки знают только цвет своей черепахи и не знают, какие черепахи принадлежат другим игрокам. Цель игры — привести свою черепаху к финишу раньше остальных, не раскрывая её принадлежность.</p>
+
+        <p>В свой ход игрок обязан разыграть одну карту с рук. Карта определяет перемещение черепахи:<br>
+— вперёд на одну или две клетки;<br>
+— назад на одну клетку.<br>
+Каждой цветной карте соответствует черепаха того же цвета — именно она и перемещается.</p>
+
+        <p>Радужные карты бывают двух типов:<br>
+— карты с символами «+» или «−» позволяют переместить любую выбранную игроком черепаху вперёд или назад соответственно;<br>
+— карты со стрелками перемещают самую отстающую черепаху. Если несколько черепах находятся на последнем месте, игрок самостоятельно выбирает, какую из них переместить.</p>
+
+        <p>Перемещение назад из достартовой зоны и с первой клетки трека невозможно.</p>
+
+        <p>После выполнения действия карты происходит автоматический добор одной карты, после чего ход переходит к следующему игроку.</p>
+
+        <p>Если черепаха перемещается на клетку, на которой уже находится другая черепаха, она взбирается на её панцирь, образуя башню. При последующих перемещениях нижняя черепаха переносит всех черепах, находящихся на ней. Таким образом могут формироваться башни из нескольких черепах.</p>
+
+        <p>Игра завершается, когда любая черепаха достигает клетки финиша. Если действие карты предполагает перемещение черепахи за пределы финишной клетки, игра также немедленно считается завершённой.</p>
+
+        <p>После завершения игры раскрывается принадлежность всех черепах. Итоговые места игроков определяются по позиции их черепах на треке. Черепахи, не принадлежащие ни одному игроку, не учитываются при определении результатов. Если на победу претендуют несколько черепах, находящихся в одной башне, победителем считается та из них, которая расположена ниже остальных.</p>
+
+        <p>На своей панели управления игрок видит, какими картами он может совершить ход в текущий момент, а какими — нет. Также на панели отображается информация о черепахе игрока, о текущем и последнем совершённом ходе, а также об оставшемся времени на текущий ход.<br>
+При необходимости игрок может воспользоваться кнопкой «Правила». Кнопка «Выйти» удаляет игрока из текущей партии.</p>
+      </div>
+      <button class="game-rules-modal__close" id="gameRulesModalClose">Закрыть</button>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/main.js"></script>
+  <script>
+    // Инициализация декоративных черепах для игровой панели
+    initTurtlesBackground('gameUiTurtles');
+
+    // Инициализация ряда игровых черепашек
+    // Черепахи будут динамически обновляться на основе состояния игры
+    (function() {
+      // Эта функция будет вызываться при загрузке состояния игры
+    })();
+
+    // ============================================
+    // Основная логика игры
+    // ============================================
+    (function initGame() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const gameId = parseInt(urlParams.get('id')) || 0;
+      const myLogin = getLogin();
+
+      if (!gameId) {
+        console.error('[game] Не найден ID игры');
+        return;
+      }
+
+      // Функция для нормализации цвета (purple → violet)
+      // Используется для карт и черепах
+      function normalizeColor(color) {
+        if (!color) return 'green'; // fallback для черепах
+        const colorLower = color.toLowerCase();
+        // Маппинг purple → violet (backend отдает purple, файлы называются violet)
+        if (colorLower === 'purple') {
+          return 'violet';
+        }
+        // Для карт может быть 'any', пропускаем как есть
+        return colorLower;
+      }
+
+      // Маппинг цветов черепах на файлы
+      const turtleColorMap = {
+        'blue': 'images/turtles/blue_turtle.svg',
+        'green': 'images/turtles/green_turtle.svg',
+        'pink': 'images/turtles/pink_turtle.svg',
+        'violet': 'images/turtles/purple_turtle.svg',
+        'yellow': 'images/turtles/yellow_turtle.svg',
+        'purple': 'images/turtles/purple_turtle.svg' // маппинг purple → purple_turtle
+      };
+
+      // Маппинг карт на изображения согласно соответствию из таблицы cards
+      function getCardImage(card) {
+        if (!card) return 'images/cards/empty_card.svg';
+        
+        const action = card.action_type || '';
+        const rawColor = card.card_color;
+        
+        // Обработка карт с card_color = NULL (id 16–19)
+        if (rawColor === null || rawColor === undefined || rawColor === '') {
+          if (action === 'last_plus1') {
+            return 'images/cards/gamecards/null_color_last_plus1.svg';
+          } else if (action === 'last_plus2') {
+            return 'images/cards/gamecards/null_color_last_plus2.svg';
+          } else if (action === 'color_plus1') {
+            return 'images/cards/gamecards/null_color_plus1.svg';
+          } else if (action === 'color_minus1') {
+            return 'images/cards/gamecards/null_color_minus1.svg';
+          } else {
+            // Fallback для неизвестных карт без цвета
+            return 'images/cards/empty_card.svg';
+          }
+        }
+        
+        // Для карт используем цвет как есть (purple остается purple)
+        const colorName = rawColor.toLowerCase();
+        
+        // Формируем имя файла на основе типа действия и цвета
+        // ВАЖНО: сначала проверяем plus2, потом plus1 (так как color_plus2 содержит "plus1" в строке)
+        let fileName = '';
+        if (action === 'color_plus2') {
+          fileName = `${colorName}_color_plus2.svg`;
+        } else if (action === 'color_plus1') {
+          fileName = `${colorName}_color_plus1.svg`;
+        } else if (action === 'color_minus1') {
+          fileName = `${colorName}_color_minus1.svg`;
+        } else {
+          // Fallback для неизвестных действий
+          fileName = `${colorName}_color_plus1.svg`;
+        }
+        
+        return `images/cards/gamecards/${fileName}`;
+      }
+
+      // Переменная для хранения интервала polling
+      let gameStateInterval = null;
+
+      // Проверка завершения игры и отображение итогов
+      function checkGameFinished(result) {
+        // Проверяем разные форматы ответа:
+        // 1. Обычный формат: result.game?.is_finished === true
+        // 2. Ошибка game_finished: result.status === 'error' && result.error === 'game_finished'
+        const isFinished = 
+          result.game?.is_finished === true || 
+          result.game?.finished_at !== null ||
+          (result.status === 'error' && result.error === 'game_finished');
+        
+        if (isFinished) {
+          console.log('[game] Игра завершена, показываем итоги');
+          
+          // Останавливаем polling
+          if (gameStateInterval) {
+            clearInterval(gameStateInterval);
+            gameStateInterval = null;
+          }
+          
+          // Блокируем игровой интерфейс
+          blockGameInterface();
+          
+          // Показываем модальное окно с результатами
+          // Результаты могут быть в result.results (если error: 'game_finished')
+          // или в result.game.results (если обычный формат)
+          console.log('[game] Извлечение результатов из ответа:');
+          console.log('[game] - result.results =', result.results);
+          console.log('[game] - result.game?.results =', result.game?.results);
+          console.log('[game] - result =', result);
+          
+          let results = result.results || result.game?.results || [];
+          
+          // Убеждаемся, что results - это массив
+          if (results && !Array.isArray(results)) {
+            console.warn('[game] results не является массивом, преобразуем:', results);
+            if (results.results && Array.isArray(results.results)) {
+              results = results.results;
+            } else if (results.data && Array.isArray(results.data)) {
+              results = results.data;
+            } else {
+              console.error('[game] Не удалось преобразовать results в массив:', results);
+              results = [];
+            }
+          }
+          
+          console.log('[game] Финальные результаты для отображения:', results);
+          console.log('[game] Тип results:', typeof results, 'isArray:', Array.isArray(results), 'length:', Array.isArray(results) ? results.length : 'N/A');
+          
+          showGameResults(results);
+          
+          return true;
+        }
+        
+        return false;
+      }
+
+      // Блокировка игрового интерфейса
+      function blockGameInterface() {
+        // Блокируем клики по картам
+        const handCards = document.getElementById('handCards');
+        if (handCards) {
+          handCards.style.pointerEvents = 'none';
+        }
+        
+        // Блокируем все кнопки карт
+        const cardButtons = document.querySelectorAll('.hand-card');
+        cardButtons.forEach(button => {
+          button.disabled = true;
+          button.style.pointerEvents = 'none';
+          button.classList.add('is-disabled');
+          button.style.cursor = 'not-allowed';
+        });
+        
+        // Обновляем сообщение
+        const boardMessage = document.getElementById('boardMessage');
+        if (boardMessage) {
+          boardMessage.textContent = 'ИГРА ЗАВЕРШЕНА';
+          boardMessage.style.color = '#ff0000';
+        }
+        
+        // Блокируем таймер хода
+        const turnStatus = document.getElementById('turnStatus');
+        if (turnStatus) {
+          turnStatus.style.opacity = '0.5';
+        }
+      }
+
+      // Разблокировка игрового интерфейса (если игра не завершена)
+      function unblockGameInterface() {
+        const handCards = document.getElementById('handCards');
+        if (handCards) {
+          handCards.style.pointerEvents = '';
+          handCards.style.opacity = '';
+        }
+        
+        const turnStatus = document.getElementById('turnStatus');
+        if (turnStatus) {
+          turnStatus.style.opacity = '';
+        }
+      }
+
+      // Маппинг цветов черепах для отображения
+      const turtleColorMapForResults = {
+        pink: 'pink_turtle.svg',
+        green: 'green_turtle.svg',
+        blue: 'blue_turtle.svg',
+        yellow: 'yellow_turtle.svg',
+        purple: 'purple_turtle.svg', // purple → purple_turtle
+        violet: 'purple_turtle.svg'  // violet → purple_turtle (normalizeColor преобразует purple в violet)
+      };
+
+      // Получение пути к иконке черепахи по цвету
+      function getTurtleIconPath(color) {
+        const normalizedColor = normalizeColor(color); // purple → violet
+        const fileName = turtleColorMapForResults[normalizedColor] || 'green_turtle.svg';
+        return `images/turtles/${fileName}`;
+      }
+
+      // Отображение результатов игры
+      function showGameResults(results) {
+        console.log('[game] showGameResults вызвана с:', results);
+        console.log('[game] Тип results:', typeof results, 'isArray:', Array.isArray(results));
+        
+        const modal = document.getElementById('gameResultsModal');
+        const tableBody = document.getElementById('gameResultsTableBody');
+        const message = document.getElementById('gameResultsMessage');
+        
+        if (!modal || !tableBody) {
+          console.error('[game] Не найдены элементы модального окна итогов');
+          return;
+        }
+        
+        // Очищаем таблицу
+        tableBody.innerHTML = '';
+        
+        // Скрываем сообщение по умолчанию
+        if (message) {
+          message.style.display = 'none';
+        }
+        
+        // Убеждаемся, что results - это массив
+        if (results && !Array.isArray(results)) {
+          console.warn('[game] results не является массивом, пытаемся преобразовать:', results);
+          if (results.results && Array.isArray(results.results)) {
+            results = results.results;
+          } else if (results.data && Array.isArray(results.data)) {
+            results = results.data;
+          } else {
+            results = [];
+          }
+        }
+        
+        // Если результатов нет, показываем сообщение
+        if (!results || !Array.isArray(results) || results.length === 0) {
+          console.log('[game] Результатов нет или массив пуст, показываем сообщение');
+          if (message) {
+            message.style.display = 'block';
+            message.textContent = 'Игра завершена без победителя';
+          }
+        } else {
+          console.log('[game] Отображаем', results.length, 'результатов');
+          // Сортируем результаты по месту (place)
+          const sortedResults = [...results].sort((a, b) => {
+            const placeA = parseInt(a.place) || 999;
+            const placeB = parseInt(b.place) || 999;
+            return placeA - placeB;
+          });
+          
+          // Заполняем таблицу
+          sortedResults.forEach((result) => {
+            const row = document.createElement('tr');
+            
+            // Место
+            const placeCell = document.createElement('td');
+            placeCell.textContent = result.place || '-';
+            placeCell.className = 'game-results-table__place';
+            
+            // Игрок
+            const playerCell = document.createElement('td');
+            playerCell.textContent = result.login || 'Неизвестный игрок';
+            playerCell.className = 'game-results-table__player';
+            
+            // Черепаха (иконка + цвет)
+            const turtleCell = document.createElement('td');
+            turtleCell.className = 'game-results-table__turtle';
+            
+            const turtleContainer = document.createElement('div');
+            turtleContainer.className = 'game-results-table__turtle-container';
+            
+            const turtleImg = document.createElement('img');
+            turtleImg.src = getTurtleIconPath(result.color);
+            turtleImg.alt = `${result.color} черепаха`;
+            turtleImg.className = 'game-results-table__turtle-img';
+            
+            const turtleText = document.createElement('span');
+            turtleText.className = 'game-results-table__turtle-text';
+            // Отображаем нормализованный цвет (purple → violet)
+            const normalizedColor = normalizeColor(result.color || '');
+            turtleText.textContent = normalizedColor || 'неизвестный цвет';
+            
+            turtleContainer.appendChild(turtleImg);
+            turtleContainer.appendChild(turtleText);
+            turtleCell.appendChild(turtleContainer);
+            
+            row.appendChild(placeCell);
+            row.appendChild(playerCell);
+            row.appendChild(turtleCell);
+            
+            tableBody.appendChild(row);
+          });
+        }
+        
+        // Показываем модальное окно
+        modal.style.display = 'flex';
+      }
+
+      // Скрытие модального окна итогов
+      function hideGameResults() {
+        const modal = document.getElementById('gameResultsModal');
+        if (modal) {
+          modal.style.display = 'none';
+        }
+      }
+
+      // Загрузка и отображение состояния игры
+      async function loadGameState() {
+        try {
+          const result = await apiGetGameState(gameId);
+          console.log('[game] Состояние игры:', result);
+
+          // Проверяем ошибки в новом формате: { status: "error", error: "..." }
+          // Но игнорируем ошибку 'game_finished', так как она обрабатывается в checkGameFinished
+          if (result.status === 'error' && result.error && result.error !== 'game_finished') {
+            const errorCode = result.error || result.message || 'unknown_error';
+            console.error('[game] Ошибка получения состояния:', errorCode);
+            
+            // Если ошибка - игрок не в игре, показываем модальное окно
+            if (errorCode === 'player_not_in_game') {
+              showGameExitModal();
+              return;
+            }
+            return;
+          }
+
+          // ШАГ 0: Проверяем, находится ли текущий игрок в списке players
+          // Это нужно для обнаружения выхода игрока через другой токен
+          if (result.players && Array.isArray(result.players)) {
+            const playerInGame = result.players.some(p => p.login === myLogin);
+            if (!playerInGame) {
+              console.log('[game] Игрок не найден в списке players, показываем модальное окно выхода');
+              showGameExitModal();
+              return;
+            }
+          }
+
+          // ШАГ 1: Проверяем завершение игры ПЕРЕД обычным рендером
+          // Это обрабатывает как обычный формат (game.is_finished), так и error: 'game_finished'
+          if (checkGameFinished(result)) {
+            // Игра завершена, не выполняем обычный рендер
+            return;
+          }
+
+          // Разблокируем интерфейс, если игра не завершена
+          unblockGameInterface();
+
+          // Обновляем сообщение над полем и таймер
+          const boardMessage = document.getElementById('boardMessage');
+          const turnTimer = document.getElementById('turnTimer');
+          const turnStatusLabel = document.querySelector('#turnStatus .turn-status__label');
+          
+          const isMyTurn = result.current_turn && result.players?.find(p => p.id_player === result.current_turn.id_player)?.login === myLogin;
+          
+          if (boardMessage) {
+            if (result.current_turn) {
+              const currentPlayer = result.players?.find(p => p.id_player === result.current_turn.id_player);
+              if (isMyTurn) {
+                boardMessage.textContent = 'ВАШ ХОД';
+                boardMessage.style.color = '#00ff00'; // Зеленый для вашего хода
+              } else {
+                boardMessage.textContent = `ХОД: ${currentPlayer?.login?.toUpperCase() || 'ДРУГОГО ИГРОКА'}`;
+                boardMessage.style.color = '#ffffff';
+              }
+            } else {
+              boardMessage.textContent = 'ЖДЁМ НАЧАЛА ПАРТИИ…';
+              boardMessage.style.color = '#ffffff';
+            }
+          }
+          
+          // Обновляем таймер из current_turn.remaining_seconds
+          if (turnTimer && result.current_turn) {
+            const remainingSeconds = parseInt(result.current_turn.remaining_seconds) || 0;
+            const mins = Math.floor(remainingSeconds / 60);
+            const secs = remainingSeconds % 60;
+            turnTimer.textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+            
+            if (remainingSeconds <= 0 && isMyTurn) {
+              turnTimer.style.color = '#ff0000'; // Красный при истечении времени
+            } else {
+              turnTimer.style.color = ''; // Обычный цвет
+            }
+          } else if (turnTimer) {
+            turnTimer.textContent = '00:00';
+          }
+          
+          // Обновляем метку статуса хода
+          if (turnStatusLabel) {
+            if (result.current_turn) {
+              if (isMyTurn) {
+                turnStatusLabel.textContent = 'ВАШ ХОД';
+              } else {
+                const currentPlayer = result.players?.find(p => p.id_player === result.current_turn.id_player);
+                turnStatusLabel.textContent = currentPlayer ? `ХОД: ${currentPlayer.login}` : 'ХОД ДРУГОГО';
+              }
+            } else {
+              turnStatusLabel.textContent = 'ОЖИДАНИЕ';
+            }
+          }
+
+          // Подсвечиваем блок карт на руках, если это наш ход
+          const handCardsPanel = document.querySelector('.ui-right .ui-panel');
+          if (handCardsPanel) {
+            if (isMyTurn) {
+              handCardsPanel.style.border = '3px solid #00ff00';
+              handCardsPanel.style.boxShadow = '0 0 20px rgba(0, 255, 0, 0.5)';
+            } else {
+              handCardsPanel.style.border = '';
+              handCardsPanel.style.boxShadow = '';
+            }
+          }
+
+          // Обновляем список игроков
+          const playersList = document.getElementById('playersList');
+          if (playersList && result.players && Array.isArray(result.players)) {
+            console.log('[game] Обновление списка игроков:', result.players);
+            console.log('[game] Текущий ход:', result.current_turn);
+            playersList.innerHTML = '';
+            
+            // Сортируем игроков по turn_order
+            const sortedPlayers = [...result.players].sort((a, b) => {
+              const orderA = parseInt(a.turn_order) || 999;
+              const orderB = parseInt(b.turn_order) || 999;
+              return orderA - orderB;
+            });
+            
+            console.log('[game] Отсортированные игроки:', sortedPlayers);
+            
+              sortedPlayers.forEach((player) => {
+              const li = document.createElement('li');
+              li.className = 'player-list__item';
+              li.setAttribute('data-player-id', player.id_player);
+              
+              // Зеленый кружок только для игрока с текущим ходом
+              const isCurrentTurn = result.current_turn && 
+                                   result.current_turn.id_player && 
+                                   player.id_player && 
+                                   result.current_turn.id_player === player.id_player;
+              if (isCurrentTurn) {
+                li.classList.add('is-active-turn');
+                console.log('[game] Добавлен класс is-active-turn для:', player.login);
+              }
+
+              const nameSpan = document.createElement('span');
+              const turnOrder = parseInt(player.turn_order) || 0;
+              nameSpan.textContent = `${turnOrder}. ${(player.login || 'Неизвестный').toUpperCase()}${player.login === myLogin ? ' (ВЫ)' : ''}`;
+              
+              const indicatorSpan = document.createElement('span');
+              indicatorSpan.className = 'player-list__indicator';
+              
+              li.appendChild(nameSpan);
+              li.appendChild(indicatorSpan);
+              playersList.appendChild(li);
+            });
+          } else {
+            console.warn('[game] Нет данных об игроках или players не является массивом:', result.players);
+          }
+
+          // Обновляем черепаху игрока из me.turtle_color
+          const myTurtleImage = document.getElementById('myTurtleImage');
+          if (myTurtleImage && result.me && result.me.turtle_color) {
+            const turtleColor = result.me.turtle_color;
+            const normalizedColor = normalizeColor(turtleColor);
+            const turtleFile = turtleColorMap[normalizedColor] || turtleColorMap['green'];
+            myTurtleImage.src = turtleFile;
+            myTurtleImage.alt = `Ваша черепаха: ${turtleColor}`;
+            console.log('[game] Обновлена черепаха игрока:', turtleColor, '->', turtleFile);
+          } else if (myTurtleImage && result.me && !result.me.turtle_color) {
+            console.log('[game] У игрока еще нет черепахи (turtle_color отсутствует)');
+          }
+
+          // Обновляем карты на руках
+          const handCards = document.getElementById('handCards');
+          if (handCards && result.my_hand) {
+            handCards.innerHTML = '';
+            
+            // Определяем, какие черепахи находятся "до старта" (cell_number < 0) или на клетке 0
+            // Карты -1 нельзя применять к таким черепахам
+            const turtlesCannotMoveBack = new Set();
+            
+            // Черепахи "до старта" (cell_number < 0) из off_track
+            if (result.off_track && Array.isArray(result.off_track)) {
+              result.off_track.forEach((cell) => {
+                const cellNumber = parseInt(cell.cell_number);
+                if (!isNaN(cellNumber) && cellNumber < 0 && cell.turtles && Array.isArray(cell.turtles)) {
+                  cell.turtles.forEach(turtle => {
+                    turtlesCannotMoveBack.add(turtle.color);
+                  });
+                }
+              });
+            }
+            
+            // Черепахи на клетке 0 (старт) из track
+            if (result.track && Array.isArray(result.track)) {
+              result.track.forEach((cell) => {
+                const cellNumber = parseInt(cell.cell_number);
+                if (cellNumber === 0 && cell.turtles && Array.isArray(cell.turtles)) {
+                  cell.turtles.forEach(turtle => {
+                    turtlesCannotMoveBack.add(turtle.color);
+                  });
+                }
+              });
+            }
+              
+            result.my_hand.forEach((card) => {
+              const button = document.createElement('button');
+              button.className = 'hand-card';
+              button.setAttribute('data-card-id', card.id_card);
+              
+              const img = document.createElement('img');
+              img.src = getCardImage(card);
+              img.alt = `Карта ${card.id_card}`;
+              
+              button.appendChild(img);
+              
+              // Проверяем, можно ли играть этой картой
+              const isBackCard = card.action_type && card.action_type.includes('minus1');
+              const cardColor = card.card_color || 'any';
+              let canPlay = true;
+              
+              if (isBackCard) {
+                // Карты -1 нельзя применять к черепахам вне трека или на клетке 0
+                if (cardColor === 'any') {
+                  // Для карт "назад" с цветом "any": запрещена, если все черепахи вне трека или на клетке 0
+                  canPlay = turtlesCannotMoveBack.size < 5;
+                } else {
+                  // Для карт с конкретным цветом: запрещена, если целевая черепаха вне трека или на клетке 0
+                  canPlay = !turtlesCannotMoveBack.has(cardColor);
+                }
+                
+                if (!canPlay) {
+                  button.disabled = true;
+                  button.classList.add('is-disabled');
+                  button.title = 'Нельзя ходить назад: черепаха вне трека или на старте';
+                }
+              }
+              
+              // Обработчик клика по карте (только если карта активна)
+              if (canPlay && isMyTurn) {
+                button.addEventListener('click', () => {
+                  handleCardClick(card, result);
+                });
+              } else if (!isMyTurn) {
+                button.disabled = true;
+                button.classList.add('is-disabled');
+              }
+              
+              handCards.appendChild(button);
+            });
+          }
+
+          // Обновляем черепах "до старта" и на треке
+          const turtlesRow = document.getElementById('gameTurtlesRow');
+          const boardTurtles = document.getElementById('boardTurtles');
+          
+          if (!turtlesRow || !boardTurtles) {
+            console.error('[game] Не найдены контейнеры для черепах!');
+            return;
+          }
+          
+          // Объединяем off_track и track в единый массив всех клеток
+          // off_track содержит черепах "до старта" (cell_number < 0)
+          // track содержит черепах на треке (cell_number >= 0)
+          const allCells = [];
+          if (result.off_track && Array.isArray(result.off_track)) {
+            allCells.push(...result.off_track);
+          }
+          if (result.track && Array.isArray(result.track)) {
+            allCells.push(...result.track);
+          }
+          
+          if (allCells.length === 0 && (!result.track || !Array.isArray(result.track))) {
+            console.warn('[game] Нет данных о треке или track не является массивом');
+            return;
+          }
+          
+          console.log('[game] Данные track от сервера (объединенные):', JSON.stringify(allCells, null, 2));
+          
+          // Собираем черепах "до старта" (cell_number < 0) из off_track
+          const turtlesBeforeStart = [];
+          if (result.off_track && Array.isArray(result.off_track)) {
+            result.off_track.forEach((cell) => {
+              const cellNumber = parseInt(cell.cell_number);
+              if (!isNaN(cellNumber) && cellNumber < 0 && cell.turtles && Array.isArray(cell.turtles)) {
+                cell.turtles.forEach(turtle => {
+                  turtlesBeforeStart.push({
+                    ...turtle,
+                    cell_number: cellNumber
+                  });
+                });
+              }
+            });
+          }
+          
+          // ВАЛИДАЦИЯ: Проверяем уникальность цветов черепах "до старта"
+          const colorsBeforeStart = turtlesBeforeStart.map(t => t.color);
+          const uniqueColorsBeforeStart = new Set(colorsBeforeStart);
+          if (colorsBeforeStart.length !== uniqueColorsBeforeStart.size) {
+            console.error('[game] ⚠️ ОШИБКА: Обнаружены дублирующиеся цвета черепах "до старта"!', colorsBeforeStart);
+            const duplicates = colorsBeforeStart.filter((color, index) => colorsBeforeStart.indexOf(color) !== index);
+            console.error('[game] Дублирующиеся цвета:', [...new Set(duplicates)]);
+          }
+          
+          // Обновляем блок "Черепахи до старта" - горизонтальный ряд
+          turtlesRow.innerHTML = '';
+          
+          if (turtlesBeforeStart.length > 0) {
+            // Сортируем по cell_number для стабильного порядка (-1, -2, -3, -4, -5)
+            const sortedTurtles = [...turtlesBeforeStart].sort((a, b) => {
+              const cellA = parseInt(a.cell_number) || 0;
+              const cellB = parseInt(b.cell_number) || 0;
+              return cellA - cellB; // -1, -2, -3, -4, -5
+            });
+            
+            sortedTurtles.forEach(turtle => {
+              const turtleDiv = document.createElement('div');
+              turtleDiv.className = 'game-turtle';
+              turtleDiv.setAttribute('data-turtle-id', turtle.id_turtle);
+              turtleDiv.setAttribute('data-color', turtle.color);
+              turtleDiv.setAttribute('data-cell-number', turtle.cell_number);
+              
+              const img = document.createElement('img');
+              const normalizedColor = normalizeColor(turtle.color);
+              img.src = turtleColorMap[normalizedColor] || turtleColorMap['green'];
+              img.alt = `${turtle.color} turtle до старта (клетка ${turtle.cell_number})`;
+              
+              turtleDiv.appendChild(img);
+              turtlesRow.appendChild(turtleDiv);
+            });
+          }
+          
+          // Обновляем черепах на треке - показываем черепах из result.track
+          // result.track содержит все клетки 0..9, даже пустые
+          boardTurtles.innerHTML = '';
+          
+          // Функция для позиционирования черепахи в клетке
+          function placeTurtleInCell(turtleEl, cellEl, boardTurtlesEl, stackIndex = 0) {
+            // Получаем координаты контейнера для черепах (board-turtles)
+            const boardTurtlesRect = boardTurtlesEl.getBoundingClientRect();
+            const cellRect = cellEl.getBoundingClientRect();
+            
+            // Точка центра клетки относительно board-turtles
+            const cx = (cellRect.left - boardTurtlesRect.left) + cellRect.width / 2;
+            const cy = (cellRect.top - boardTurtlesRect.top) + cellRect.height / 2;
+            
+            // Параметры черепахи (одинаковые у всех)
+            const turtleHeight = 72; // высота черепахи в px
+            
+            // 1. Поднимаем черепаху выше клетки трека, чтобы она не накладывалась
+            // Клетка трека имеет высоту 6px, поднимаем черепаху так, чтобы её нижний край был немного выше верхнего края клетки
+            // Используем половину высоты черепахи + половину высоты клетки + небольшой зазор
+            const cellOffsetY = -turtleHeight / 2 - 3 - 5; // -36px (половина высоты) - 3px (половина высоты клетки) - 5px (зазор) = -44px
+            
+            // 2. Смещение для башни - используем почти полную высоту черепахи, чтобы они стояли друг на друге
+            // stackIndex 0 - нижняя черепаха, stackIndex 1 - вторая, и т.д.
+            // Используем 90% от высоты для визуального эффекта "стояния друг на друге" без полного наложения
+            const stackDy = turtleHeight * 0.9; // 90% от высоты черепахи (64.8px)
+            const stackOffsetY = -stackIndex * stackDy;
+            
+            turtleEl.style.left = `${cx}px`;
+            turtleEl.style.top = `${cy + cellOffsetY + stackOffsetY}px`;
+          }
+          
+          // Проходим по всем клеткам трека (только cell_number >= 0)
+          if (result.track && Array.isArray(result.track)) {
+            result.track.forEach((cell) => {
+            const cellNumber = parseInt(cell.cell_number);
+            if (isNaN(cellNumber)) {
+              console.warn('[game] Пропущена клетка с невалидным cell_number:', cell);
+              return;
+            }
+            
+            // Пропускаем клетки с отрицательными номерами (-1..-5)
+            // Эти клетки используются на сервере для хранения черепах "до старта"
+            // В клиентскую часть они приходят через off_track, а не через track
+            if (cellNumber < 0) {
+              return;
+            }
+            
+            // Если на клетке есть черепахи, отображаем их
+            if (cell.turtles && Array.isArray(cell.turtles) && cell.turtles.length > 0) {
+              // Находим DOM-элемент клетки по data-cell
+              const cellEl = document.querySelector(`.track-tile[data-cell="${cellNumber}"]`);
+              if (!cellEl) {
+                console.warn(`[game] Не найдена клетка с номером ${cellNumber}`);
+                return;
+              }
+              
+              // Сортируем черепах на клетке по stack_order
+              const turtlesOnCell = [...cell.turtles].sort((a, b) => (a.stack_order || 0) - (b.stack_order || 0));
+              
+              turtlesOnCell.forEach((turtle, index) => {
+                const turtleDiv = document.createElement('div');
+                turtleDiv.className = 'board-turtle';
+                turtleDiv.setAttribute('data-cell', cellNumber);
+                turtleDiv.setAttribute('data-turtle-id', turtle.id_turtle);
+                turtleDiv.setAttribute('data-stack-order', turtle.stack_order || index);
+                turtleDiv.setAttribute('data-color', turtle.color);
+                
+                // stackIndex = stack_order - 1 (stack_order 1 -> index 0, stack_order 2 -> index 1, и т.д.)
+                const stackIndex = (turtle.stack_order || index + 1) - 1;
+                
+                // z-index: нижние черепахи имеют больший z-index
+                turtleDiv.style.zIndex = 10 - stackIndex;
+                
+                const img = document.createElement('img');
+                const normalizedColor = normalizeColor(turtle.color);
+                img.src = turtleColorMap[normalizedColor] || turtleColorMap['green'];
+                img.alt = `${turtle.color} turtle на клетке ${cellNumber}`;
+                
+                turtleDiv.appendChild(img);
+                boardTurtles.appendChild(turtleDiv);
+                
+                // Позиционируем черепаху после добавления в DOM
+                // Используем requestAnimationFrame для гарантии, что layout уже рассчитан
+                requestAnimationFrame(() => {
+                  placeTurtleInCell(turtleDiv, cellEl, boardTurtles, stackIndex);
+                });
+              });
+            }
+          });
+          }
+          
+          // ВАЛИДАЦИЯ: Проверяем уникальность цветов всех черепах в игре
+          const allTurtlesInGame = [];
+          // Собираем черепах из off_track и track
+          if (result.off_track && Array.isArray(result.off_track)) {
+            result.off_track.forEach((cell) => {
+              if (cell.turtles && Array.isArray(cell.turtles)) {
+                cell.turtles.forEach(turtle => {
+                  allTurtlesInGame.push(turtle);
+                });
+              }
+            });
+          }
+          if (result.track && Array.isArray(result.track)) {
+            result.track.forEach((cell) => {
+              if (cell.turtles && Array.isArray(cell.turtles)) {
+                cell.turtles.forEach(turtle => {
+                  allTurtlesInGame.push(turtle);
+                });
+              }
+            });
+          }
+          
+          const allColors = allTurtlesInGame.map(t => t.color);
+          const uniqueColors = new Set(allColors);
+          const expectedColors = ['blue', 'green', 'pink', 'violet', 'yellow'];
+          const missingColors = expectedColors.filter(c => !uniqueColors.has(c));
+          const duplicateColors = allColors.filter((color, index) => allColors.indexOf(color) !== index);
+          
+          if (allColors.length !== uniqueColors.size) {
+            console.error('[game] ⚠️ КРИТИЧЕСКАЯ ОШИБКА: Обнаружены дублирующиеся цвета черепах в игре!');
+            console.error('[game] Всего черепах:', allColors.length, 'Уникальных цветов:', uniqueColors.size);
+            console.error('[game] Дублирующиеся цвета:', [...new Set(duplicateColors)]);
+            console.error('[game] Все цвета в игре:', allColors);
+            
+            // Показываем визуальное предупреждение пользователю
+            const boardMessage = document.getElementById('boardMessage');
+            if (boardMessage) {
+              const originalText = boardMessage.textContent;
+              boardMessage.textContent = '⚠️ ОШИБКА: Дублируются цвета черепах!';
+              boardMessage.style.color = '#ff0000';
+              boardMessage.style.animation = 'none';
+              
+              // Возвращаем оригинальный текст через 5 секунд
+              setTimeout(() => {
+                boardMessage.textContent = originalText;
+                boardMessage.style.color = '';
+              }, 5000);
+            }
+          }
+          
+          if (missingColors.length > 0 && allColors.length === 5) {
+            console.warn('[game] ⚠️ Предупреждение: Отсутствуют некоторые цвета черепах:', missingColors);
+            console.warn('[game] Ожидаемые цвета:', expectedColors);
+            console.warn('[game] Фактические цвета:', [...uniqueColors]);
+          }
+          
+          // Дополнительная проверка: должно быть ровно 5 черепах с уникальными цветами
+          if (allColors.length === 5 && allColors.length !== uniqueColors.size) {
+            console.error('[game] ⚠️ ОШИБКА СЕРВЕРА: В игре должно быть 5 черепах разных цветов, но обнаружены дубликаты!');
+            console.error('[game] Это ошибка на стороне сервера в функции start_game_api.');
+            console.error('[game] Нужно исправить логику назначения черепах, чтобы гарантировать уникальность цветов.');
+          }
+          
+          console.log('[game] ========== ОТЛАДКА ЧЕРЕПАХ ==========');
+          console.log('[game] Черепахи до старта (cell_number < 0):', turtlesBeforeStart.length, turtlesBeforeStart.map(t => `${t.color} (id:${t.id_turtle}, cell:${t.cell_number})`).join(', ') || 'нет');
+          console.log('[game] Всего черепах в игре:', allTurtlesInGame.length);
+          console.log('[game] Цвета черепах:', [...uniqueColors].sort().join(', '));
+          console.log('[game] Клетки трека:', result.track.map(c => `клетка ${c.cell_number}: ${c.turtles?.length || 0} черепах`).join('; '));
+          console.log('[game] ======================================');
+
+          // Обновляем стопку сброса (последняя сыгранная карта из game.last_played_card)
+          const discardPile = document.getElementById('discardPile');
+          if (discardPile) {
+            // Получаем last_played_card из result.game.last_played_card
+            const lastCard = result.game?.last_played_card;
+            
+            console.log('[game] Последняя сыгранная карта:', lastCard);
+            
+            if (lastCard) {
+              // Отображаем последнюю сыгранную карту
+              const cardImg = discardPile.querySelector('img');
+              if (cardImg) {
+                cardImg.src = getCardImage(lastCard);
+                cardImg.alt = `Последняя сыгранная карта: ${lastCard.id_card || ''}`;
+              } else {
+                // Если изображения нет, создаем его
+                discardPile.innerHTML = '';
+                const img = document.createElement('img');
+                img.src = getCardImage(lastCard);
+                img.alt = `Последняя сыгранная карта`;
+                discardPile.appendChild(img);
+              }
+            } else {
+              // Если нет последней карты, показываем пустую карту
+              const cardImg = discardPile.querySelector('img');
+              if (cardImg) {
+                cardImg.src = 'images/cards/empty_card.svg';
+                cardImg.alt = 'Стопка сброса';
+              }
+            }
+          }
+
+        } catch (error) {
+          console.error('[game] Ошибка загрузки состояния:', error);
+        }
+      }
+
+      // Определение типа карты
+      function getCardType(card) {
+        if (!card || !card.action_type) return 'normal';
+        const action = card.action_type.toLowerCase();
+        const color = card.card_color;
+        
+        // Карты "any" (универсальные)
+        if (!color || color === 'any' || color === null) {
+          if (action.includes('last_plus1') || action.includes('last_plus2')) {
+            return 'last';
+          }
+          return 'any';
+        }
+        
+        // Обычные цветные карты
+        return 'normal';
+      }
+
+      // Сбор всех черепах из состояния игры
+      function getAllTurtlesFromState(gameState) {
+        const allTurtles = [];
+        console.log('[game] getAllTurtlesFromState: входные данные off_track:', gameState.off_track, 'track:', gameState.track);
+        
+        // Обрабатываем off_track (черепахи "до старта", cell_number < 0)
+        if (gameState.off_track && Array.isArray(gameState.off_track)) {
+          gameState.off_track.forEach((cell) => {
+            const cellNumber = parseInt(cell.cell_number);
+            if (isNaN(cellNumber)) {
+              console.warn('[game] Пропущена клетка с невалидным cell_number:', cell);
+              return;
+            }
+            
+            if (cell.turtles && Array.isArray(cell.turtles)) {
+              cell.turtles.forEach(turtle => {
+                if (turtle.id_turtle) {
+                  allTurtles.push({
+                    ...turtle,
+                    cell_number: cellNumber
+                  });
+                }
+              });
+            }
+          });
+        }
+        
+        // Обрабатываем track (черепахи на треке, cell_number >= 0)
+        if (gameState.track && Array.isArray(gameState.track)) {
+          gameState.track.forEach((cell) => {
+            const cellNumber = parseInt(cell.cell_number);
+            if (isNaN(cellNumber)) {
+              console.warn('[game] Пропущена клетка с невалидным cell_number:', cell);
+              return;
+            }
+            
+            if (cell.turtles && Array.isArray(cell.turtles)) {
+              cell.turtles.forEach(turtle => {
+                if (turtle.id_turtle) {
+                  allTurtles.push({
+                    ...turtle,
+                    cell_number: cellNumber
+                  });
+                }
+              });
+            }
+          });
+        }
+        
+        if (allTurtles.length === 0) {
+          console.warn('[game] Не найдено черепах в off_track и track');
+        }
+        
+        console.log('[game] Всего собрано черепах:', allTurtles.length, allTurtles.map(t => ({ id: t.id_turtle, color: t.color, cell: t.cell_number })));
+        return allTurtles;
+      }
+
+      // Получение доступных черепах для карт "any"
+      function getAvailableTurtlesForAnyCard(gameState, isForward) {
+        const allTurtles = getAllTurtlesFromState(gameState);
+        
+        if (isForward) {
+          // one_forward_any: можно выбрать любую черепаху (включая "до старта")
+          return allTurtles;
+        } else {
+          // one_back_any: нельзя выбирать черепах "до старта" (cell_number < 0) и на клетке 0
+          return allTurtles.filter(t => {
+            const cellNum = parseInt(t.cell_number);
+            return !isNaN(cellNum) && cellNum > 0;
+          });
+        }
+      }
+
+      // Получение последних черепах (с минимальным effective_cell)
+      // effective_cell = CASE WHEN cell_number < 0 THEN -1 ELSE cell_number END
+      // Черепахи "до старта" (cell_number < 0) считаются одинаково последними (effective_cell = -1)
+      function getLastTurtles(gameState) {
+        console.log('[game] ========== ПОИСК ПОСЛЕДНИХ ЧЕРЕПАХ ==========');
+        console.log('[game] Состояние игры off_track:', gameState.off_track, 'track:', gameState.track);
+        
+        const allTurtles = getAllTurtlesFromState(gameState);
+        console.log('[game] Всего собрано черепах из off_track и track:', allTurtles.length);
+        
+        if (allTurtles.length === 0) {
+          console.warn('[game] Нет черепах в состоянии игры!');
+          return [];
+        }
+        
+        // Вычисляем effective_cell для каждой черепахи
+        // effective_cell = cell_number < 0 ? -1 : cell_number
+        const turtlesWithEffectiveCell = allTurtles.map(t => {
+          // Используем уже сохраненное cell_number из getAllTurtlesFromState
+          const cellNum = typeof t.cell_number === 'number' ? t.cell_number : parseInt(t.cell_number);
+          // Если cell_number невалидный, считаем его 0
+          const validCellNum = isNaN(cellNum) ? 0 : cellNum;
+          const effectiveCell = validCellNum < 0 ? -1 : validCellNum;
+          return {
+            ...t,
+            effective_cell: effectiveCell
+          };
+        });
+        
+        // Находим минимальный effective_cell среди всех черепах
+        const minEffectiveCell = Math.min(...turtlesWithEffectiveCell.map(t => t.effective_cell));
+        
+        console.log('[game] Поиск последних черепах: minEffectiveCell =', minEffectiveCell);
+        console.log('[game] Все черепахи с effective_cell:', turtlesWithEffectiveCell.map(t => ({
+          id: t.id_turtle,
+          color: t.color,
+          cell_number: t.cell_number,
+          effective_cell: t.effective_cell
+        })));
+        
+        // Возвращаем всех черепах с минимальным effective_cell
+        const lastTurtles = turtlesWithEffectiveCell.filter(t => t.effective_cell === minEffectiveCell);
+        
+        console.log('[game] Найдено последних черепах:', lastTurtles.length, lastTurtles.map(t => ({
+          id: t.id_turtle,
+          color: t.color,
+          cell_number: t.cell_number,
+          effective_cell: t.effective_cell
+        })));
+        console.log('[game] ============================================');
+        
+        return lastTurtles;
+      }
+
+      // Показ модального окна для выбора черепахи
+      function showTurtleSelectModal(turtles, onSelect) {
+        const modal = document.getElementById('turtleSelectModal');
+        const turtlesContainer = document.getElementById('turtleSelectModalTurtles');
+        const closeButton = document.getElementById('turtleSelectModalClose');
+        
+        if (!modal || !turtlesContainer) return;
+        
+        // Очищаем контейнер
+        turtlesContainer.innerHTML = '';
+        
+        // Добавляем черепах
+        turtles.forEach(turtle => {
+          const button = document.createElement('button');
+          button.className = 'turtle-select-modal__turtle';
+          button.setAttribute('data-turtle-id', turtle.id_turtle);
+          button.setAttribute('data-turtle-color', turtle.color);
+          
+          const normalizedColor = normalizeColor(turtle.color);
+          const img = document.createElement('img');
+          img.className = 'turtle-select-modal__turtle-img';
+          img.src = turtleColorMap[normalizedColor] || turtleColorMap['green'];
+          img.alt = `Черепаха ${turtle.color} на клетке ${turtle.cell_number}`;
+          
+          button.appendChild(img);
+          
+          button.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const selectedTurtleId = turtle.id_turtle;
+            console.log('[game] Выбрана черепаха в модалке:', selectedTurtleId, turtle);
+            
+            // Закрываем модалку
+            hideTurtleSelectModal();
+            
+            // Вызываем onSelect сразу, но после небольшой задержки для гарантии закрытия модалки
+            setTimeout(() => {
+              console.log('[game] Вызываем onSelect с targetTurtleId:', selectedTurtleId);
+              if (selectedTurtleId) {
+                onSelect(selectedTurtleId);
+              } else {
+                console.error('[game] ОШИБКА: selectedTurtleId пустой!', turtle);
+                alert('Ошибка: не удалось определить ID выбранной черепахи');
+              }
+            }, 50);
+          });
+          
+          turtlesContainer.appendChild(button);
+        });
+        
+        // Обработчик закрытия
+        const closeHandler = (e) => {
+          // Закрываем только если клик был именно на overlay, а не на его дочерние элементы
+          if (e.target === modal.querySelector('.turtle-select-modal__overlay')) {
+            hideTurtleSelectModal();
+          }
+        };
+        closeButton.onclick = () => hideTurtleSelectModal();
+        const overlay = modal.querySelector('.turtle-select-modal__overlay');
+        if (overlay) {
+          overlay.onclick = closeHandler;
+        }
+        
+        // Показываем модалку
+        modal.style.display = 'flex';
+      }
+
+      // Скрытие модального окна
+      function hideTurtleSelectModal() {
+        const modal = document.getElementById('turtleSelectModal');
+        if (modal) {
+          modal.style.display = 'none';
+        }
+      }
+
+      // Отправка хода
+      async function doMove(cardId, targetTurtleId) {
+        try {
+          console.log('[game] Делаем ход:', { cardId, targetTurtleId, targetTurtleIdType: typeof targetTurtleId });
+          
+          // Проверяем, что targetTurtleId передан (может быть null для обычных карт)
+          if (targetTurtleId === undefined) {
+            console.error('[game] ОШИБКА: targetTurtleId не передан!');
+            alert('Ошибка: не выбран target_turtle_id');
+            return;
+          }
+          
+          // Отключаем карту на время запроса
+          const cardButton = document.querySelector(`[data-card-id="${cardId}"]`);
+          if (cardButton) {
+            cardButton.disabled = true;
+            cardButton.classList.add('is-disabled');
+          }
+
+          const result = await apiMakeMove(gameId, cardId, targetTurtleId);
+          console.log('[game] Результат хода:', result);
+
+          // Проверяем результат хода (новый формат: { status: "error", error: "..." })
+          if (result.status === 'error' || result.error) {
+            const errorCode = result.error || result.message || 'unknown_error';
+            let errorMessage = 'Ошибка при выполнении хода';
+            
+            if (errorCode === 'cannot_move_back_from_start') {
+              errorMessage = 'Нельзя ходить назад со старта (клетка 0)';
+            } else if (errorCode === 'cannot_move_back_from_outside_track') {
+              errorMessage = 'Нельзя ходить назад: черепаха еще не на треке';
+            } else if (errorCode === 'turtle_not_on_track') {
+              errorMessage = 'Черепаха еще не на треке';
+            } else if (errorCode === 'invalid_move') {
+              errorMessage = 'Недопустимый ход';
+            } else if (errorCode === 'target_turtle_required') {
+              errorMessage = 'Необходимо выбрать целевую черепаху';
+            } else {
+              errorMessage = 'Ошибка при выполнении хода: ' + (errorCode || 'Неизвестная ошибка');
+            }
+            
+            alert(errorMessage);
+            if (cardButton) {
+              cardButton.disabled = false;
+              cardButton.classList.remove('is-disabled');
+            }
+            return;
+          }
+
+          // Если ход успешен, обновляем состояние игры
+          if (result.game || result.my_hand) {
+            await updateGameStateFromMove(result);
+          } else {
+            await loadGameState();
+          }
+        } catch (error) {
+          console.error('[game] Ошибка при ходе:', error);
+          alert('Ошибка при выполнении хода: ' + (error.message || 'Неизвестная ошибка'));
+          
+          const cardButton = document.querySelector(`[data-card-id="${cardId}"]`);
+          if (cardButton) {
+            cardButton.disabled = false;
+            cardButton.classList.remove('is-disabled');
+          }
+        }
+      }
+
+      // Обработка клика по карте
+      async function handleCardClick(card, gameState) {
+        if (!card || !gameState) return;
+        
+        // Проверяем, не завершена ли игра
+        if (gameState.game?.is_finished === true || gameState.game?.finished_at !== null) {
+          console.log('[game] Игра завершена, ход невозможен');
+          return;
+        }
+
+        const myPlayer = gameState.players?.find(p => p.login === myLogin);
+        const currentTurn = gameState.current_turn;
+
+        // Проверяем, что это наш ход
+        if (!currentTurn || currentTurn.id_player !== myPlayer?.id_player) {
+          alert('Сейчас не ваш ход!');
+          return;
+        }
+
+        const cardType = getCardType(card);
+        console.log('[game] Тип карты:', cardType, card);
+
+        // Обработка карт типа "any" (универсальные)
+        if (cardType === 'any') {
+          const action = card.action_type.toLowerCase();
+          const isForward = action.includes('plus1') || action.includes('plus2');
+          
+          const availableTurtles = getAvailableTurtlesForAnyCard(gameState, isForward);
+          
+          console.log('[game] Доступные черепахи для any карты:', availableTurtles);
+          
+          if (availableTurtles.length === 0) {
+            alert('Нет доступных черепах для этой карты');
+            return;
+          }
+          
+          // Проверяем, что у всех черепах есть id_turtle
+          const turtlesWithId = availableTurtles.filter(t => t.id_turtle);
+          if (turtlesWithId.length !== availableTurtles.length) {
+            console.warn('[game] Некоторые черепахи без id_turtle:', availableTurtles.filter(t => !t.id_turtle));
+          }
+          
+          // Показываем модалку для выбора
+          showTurtleSelectModal(turtlesWithId, (targetTurtleId) => {
+            console.log('[game] Callback onSelect вызван с targetTurtleId:', targetTurtleId);
+            if (!targetTurtleId) {
+              console.error('[game] ОШИБКА: targetTurtleId пустой в callback!');
+              alert('Ошибка: не удалось определить ID выбранной черепахи');
+              return;
+            }
+            doMove(card.id_card, targetTurtleId);
+          });
+          return;
+        }
+
+        // Обработка карт типа "last" (последняя черепаха)
+        if (cardType === 'last') {
+          const lastTurtles = getLastTurtles(gameState);
+          
+          console.log('[game] Последние черепахи для карты last:', lastTurtles);
+          
+          if (lastTurtles.length === 0) {
+            alert('Не найдено последних черепах');
+            return;
+          }
+          
+          // Проверяем, что у всех черепах есть id_turtle
+          const turtlesWithId = lastTurtles.filter(t => t.id_turtle);
+          if (turtlesWithId.length !== lastTurtles.length) {
+            console.warn('[game] Некоторые последние черепахи без id_turtle:', lastTurtles.filter(t => !t.id_turtle));
+          }
+          
+          if (turtlesWithId.length === 0) {
+            alert('Не найдено последних черепах с валидным ID');
+            return;
+          }
+          
+          // Если последняя черепаха одна - выбираем автоматически
+          if (turtlesWithId.length === 1) {
+            console.log('[game] Автоматически выбираем последнюю черепаху:', turtlesWithId[0].id_turtle);
+            doMove(card.id_card, turtlesWithId[0].id_turtle);
+            return;
+          }
+          
+          // Если несколько последних - показываем модалку
+          console.log('[game] Показываем модалку для выбора из', turtlesWithId.length, 'последних черепах');
+          showTurtleSelectModal(turtlesWithId, (targetTurtleId) => {
+            console.log('[game] Callback onSelect для last карты вызван с targetTurtleId:', targetTurtleId);
+            if (!targetTurtleId) {
+              console.error('[game] ОШИБКА: targetTurtleId пустой в callback!');
+              alert('Ошибка: не удалось определить ID выбранной черепахи');
+              return;
+            }
+            doMove(card.id_card, targetTurtleId);
+          });
+          return;
+        }
+
+        // Обычные цветные карты - логика как раньше
+        let targetTurtle = null;
+        if (card.card_color && card.card_color !== 'any') {
+          // Ищем черепаху нужного цвета в off_track и track
+          // Сначала проверяем off_track (черепахи "до старта")
+          if (gameState.off_track && Array.isArray(gameState.off_track)) {
+            for (const cell of gameState.off_track) {
+              if (cell.turtles && Array.isArray(cell.turtles) && cell.turtles.length > 0) {
+                const turtle = cell.turtles.find(t => t.color === card.card_color);
+                if (turtle) {
+                  targetTurtle = turtle.id_turtle;
+                  break;
+                }
+              }
+            }
+          }
+          
+          // Если не нашли в off_track, ищем в track
+          if (!targetTurtle && gameState.track && Array.isArray(gameState.track)) {
+            for (const cell of gameState.track) {
+              if (cell.turtles && Array.isArray(cell.turtles) && cell.turtles.length > 0) {
+                const turtle = cell.turtles.find(t => t.color === card.card_color);
+                if (turtle) {
+                  targetTurtle = turtle.id_turtle;
+                  break;
+                }
+              }
+            }
+          }
+        }
+
+        // Отправляем ход
+        doMove(card.id_card, targetTurtle);
+      }
+
+      // Обновление состояния игры из ответа make_move
+      async function updateGameStateFromMove(moveResult) {
+        try {
+          // Если в ответе есть обновленное состояние, используем его
+          // Иначе загружаем заново
+          if (moveResult.my_hand) {
+            // Обновляем карты на руках (карта уже должна быть удалена из руки)
+            const handCards = document.getElementById('handCards');
+            if (handCards) {
+              handCards.innerHTML = '';
+              
+              // Получаем актуальное состояние для проверки активных карт
+              const currentState = await apiGetGameState(gameId);
+              const isMyTurn = currentState.current_turn && currentState.players?.find(p => p.id_player === currentState.current_turn.id_player)?.login === myLogin;
+              
+              // Определяем, какие черепахи находятся "до старта" (cell_number < 0) или на клетке 0
+              // Карты -1 запрещены для таких черепах
+              const turtlesCannotMoveBack = new Set();
+              
+              // Черепахи "до старта" (cell_number < 0) из off_track
+              if (currentState.off_track && Array.isArray(currentState.off_track)) {
+                currentState.off_track.forEach((cell) => {
+                  const cellNum = parseInt(cell.cell_number);
+                  if (!isNaN(cellNum) && cellNum < 0 && cell.turtles && Array.isArray(cell.turtles)) {
+                    cell.turtles.forEach(turtle => {
+                      turtlesCannotMoveBack.add(turtle.color);
+                    });
+                  }
+                });
+              }
+              
+              // Черепахи на клетке 0 (старт) из track
+              if (currentState.track && Array.isArray(currentState.track)) {
+                currentState.track.forEach((cell) => {
+                  const cellNum = parseInt(cell.cell_number);
+                  if (cellNum === 0 && cell.turtles && Array.isArray(cell.turtles)) {
+                    cell.turtles.forEach(turtle => {
+                      turtlesCannotMoveBack.add(turtle.color);
+                    });
+                  }
+                });
+              }
+              
+              moveResult.my_hand.forEach((card) => {
+                const button = document.createElement('button');
+                button.className = 'hand-card';
+                button.setAttribute('data-card-id', card.id_card);
+                
+                const img = document.createElement('img');
+                img.src = getCardImage(card);
+                img.alt = `Карта ${card.id_card}`;
+                
+                button.appendChild(img);
+                
+                // Проверяем, можно ли играть этой картой
+                const isBackCard = card.action_type && card.action_type.includes('minus1');
+                const cardColor = card.card_color || 'any';
+                let canPlay = true;
+                
+                if (isBackCard) {
+                  // Карта -1 запрещена для черепах вне трека (cell_number = -1) или на клетке 0
+                  if (cardColor === 'any') {
+                    // Для универсальной карты -1: запрещена, если все черепахи вне трека или на клетке 0
+                    canPlay = turtlesCannotMoveBack.size < 5;
+                  } else {
+                    // Для цветной карты -1: запрещена, если целевая черепаха вне трека или на клетке 0
+                    canPlay = !turtlesCannotMoveBack.has(cardColor);
+                  }
+                  
+                  if (!canPlay) {
+                    button.disabled = true;
+                    button.classList.add('is-disabled');
+                    button.title = 'Нельзя ходить назад: черепаха вне трека или на старте';
+                  }
+                }
+                
+                // Обработчик клика по карте
+                if (canPlay && isMyTurn) {
+                  button.addEventListener('click', async () => {
+                    // Загружаем актуальное состояние игры перед ходом
+                    const currentState = await apiGetGameState(gameId);
+                    console.log('[game] Загружено актуальное состояние для хода:', currentState);
+                    handleCardClick(card, currentState);
+                  });
+                } else if (!isMyTurn) {
+                  button.disabled = true;
+                  button.classList.add('is-disabled');
+                }
+                
+                handCards.appendChild(button);
+              });
+            }
+          }
+
+          // Обновляем стопку сброса с последней сыгранной картой
+          const discardPile = document.getElementById('discardPile');
+          if (discardPile) {
+            const playedCard = moveResult.move?.card || moveResult.last_played_card || moveResult.game?.last_played_card;
+            if (playedCard) {
+              const cardImg = discardPile.querySelector('img');
+              if (cardImg) {
+                cardImg.src = getCardImage(playedCard);
+                cardImg.alt = `Последняя сыгранная карта`;
+              } else {
+                discardPile.innerHTML = '';
+                const img = document.createElement('img');
+                img.src = getCardImage(playedCard);
+                img.alt = `Последняя сыгранная карта`;
+                discardPile.appendChild(img);
+              }
+            }
+          }
+
+          // Перезагружаем полное состояние для обновления трека и других данных
+          await loadGameState();
+        } catch (error) {
+          console.error('[game] Ошибка обновления состояния после хода:', error);
+          // В случае ошибки загружаем состояние заново
+          await loadGameState();
+        }
+      }
+
+      // Первая загрузка состояния
+      loadGameState();
+
+      // Обновляем состояние каждые 2 секунды
+      gameStateInterval = setInterval(loadGameState, 2000);
+      
+      // Функция показа модального окна выхода из игры
+      function showGameExitModal() {
+        // Останавливаем polling, чтобы не делать лишние запросы
+        if (gameStateInterval) {
+          clearInterval(gameStateInterval);
+          gameStateInterval = null;
+        }
+        
+        const modal = document.getElementById('gameExitModal');
+        if (modal) {
+          modal.style.display = 'flex';
+        }
+      }
+
+      // Функция скрытия модального окна выхода из игры
+      function hideGameExitModal() {
+        const modal = document.getElementById('gameExitModal');
+        if (modal) {
+          modal.style.display = 'none';
+        }
+      }
+
+      // Обработчик кнопки "ВЫЙТИ" (выход из игры)
+      const exitButton = document.getElementById('exitButton');
+      if (exitButton) {
+        exitButton.addEventListener('click', async () => {
+          try {
+            // Выходим из игры через API
+            await apiLeaveGame(gameId);
+            // Показываем модальное окно
+            showGameExitModal();
+          } catch (error) {
+            console.error('[game] Ошибка при выходе из игры:', error);
+            // В случае ошибки все равно показываем модальное окно
+            showGameExitModal();
+          }
+        });
+      }
+
+      // Обработчик кнопки "ВЕРНУТЬСЯ В МЕНЮ" в модальном окне выхода
+      const gameExitModalButton = document.getElementById('gameExitModalButton');
+      if (gameExitModalButton) {
+        gameExitModalButton.addEventListener('click', () => {
+          hideGameExitModal();
+          window.location.href = 'menu.html';
+        });
+      }
+
+      // Закрытие модального окна выхода по клику на overlay
+      const gameExitModal = document.getElementById('gameExitModal');
+      if (gameExitModal) {
+        const overlay = gameExitModal.querySelector('.game-exit-modal__overlay');
+        if (overlay) {
+          overlay.addEventListener('click', () => {
+            hideGameExitModal();
+            window.location.href = 'menu.html';
+          });
+        }
+      }
+
+      // Функция показа модального окна правил
+      function showGameRulesModal() {
+        const modal = document.getElementById('gameRulesModal');
+        if (modal) {
+          modal.style.display = 'flex';
+        }
+      }
+
+      // Функция скрытия модального окна правил
+      function hideGameRulesModal() {
+        const modal = document.getElementById('gameRulesModal');
+        if (modal) {
+          modal.style.display = 'none';
+        }
+      }
+
+      // Обработчик кнопки "ПРАВИЛА"
+      const rulesButton = document.getElementById('rulesButton');
+      if (rulesButton) {
+        rulesButton.addEventListener('click', () => {
+          showGameRulesModal();
+        });
+      }
+
+      // Обработчик кнопки закрытия модального окна правил
+      const gameRulesModalClose = document.getElementById('gameRulesModalClose');
+      if (gameRulesModalClose) {
+        gameRulesModalClose.addEventListener('click', () => {
+          hideGameRulesModal();
+        });
+      }
+
+      // Обработчик закрытия модального окна по клику на overlay
+      const gameRulesModal = document.getElementById('gameRulesModal');
+      if (gameRulesModal) {
+        const overlay = gameRulesModal.querySelector('.game-rules-modal__overlay');
+        if (overlay) {
+          overlay.addEventListener('click', (e) => {
+            // Закрываем только если клик был именно на overlay, а не на его дочерние элементы
+            if (e.target === overlay) {
+              hideGameRulesModal();
+            }
+          });
+        }
+      }
+      
+      // Обработчик кнопки "Выйти" в модальном окне итогов
+      const gameResultsExitBtn = document.getElementById('gameResultsExit');
+      if (gameResultsExitBtn) {
+        gameResultsExitBtn.addEventListener('click', async () => {
+          console.log('[game] Выход из игры после завершения');
+          
+          // Пользователь остается авторизованным, переходим на страницу меню
+          window.location.href = 'menu.html';
+        });
+      }
+      
+      // Обработчик закрытия модального окна по клику на overlay
+      const gameResultsModal = document.getElementById('gameResultsModal');
+      if (gameResultsModal) {
+        const overlay = gameResultsModal.querySelector('.game-results-modal__overlay');
+        if (overlay) {
+          overlay.addEventListener('click', (e) => {
+            // Закрываем только если клик именно на overlay, а не на его дочерних элементах
+            if (e.target === overlay) {
+              // Не закрываем модальное окно по клику на overlay, только через кнопку "Выйти"
+            }
+          });
+        }
+      }
+    })();
+
+    // ============================================
+    // Логика обновления таймера хода
+    // ============================================
+    (function initGameTimer() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const gameId = parseInt(urlParams.get('id')) || 0;
+      const turnTimer = document.getElementById('turnTimer');
+      const turnStatusLabel = document.querySelector('#turnStatus .turn-status__label');
+      const myLogin = getLogin();
+
+      if (!gameId || !turnTimer) return;
+
+      // Форматирование секунд в MM:SS
+      function formatTime(seconds) {
+        if (seconds === null || seconds === undefined || seconds < 0) {
+          return '00:00';
+        }
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+      }
+
+      // Обновление таймера на основе состояния игры
+      async function updateTimer() {
+        try {
+          const result = await apiGetGameState(gameId);
+          
+          // Проверяем ошибки в новом формате: { status: "error", error: "..." }
+          if (result.status === 'error' || result.error) {
+            const errorCode = result.error || result.message || 'unknown_error';
+            console.error('[game-timer] Ошибка получения состояния:', errorCode);
+            turnTimer.textContent = '--:--';
+            return;
+          }
+
+          const currentTurn = result.current_turn;
+          const myPlayer = result.players?.find(p => p.login === myLogin);
+
+          console.log('[game-timer] currentTurn:', currentTurn);
+          console.log('[game-timer] myPlayer:', myPlayer);
+
+          if (!currentTurn || !myPlayer) {
+            // Нет активного хода или игрок не найден
+            turnTimer.textContent = '00:00';
+            if (turnStatusLabel) {
+              turnStatusLabel.textContent = 'ОЖИДАНИЕ';
+            }
+            return;
+          }
+
+          const remainingSeconds = parseInt(currentTurn.remaining_seconds) || 0;
+          const isMyTurn = parseInt(currentTurn.id_player) === parseInt(myPlayer.id_player);
+          
+          console.log('[game-timer] remainingSeconds:', remainingSeconds);
+          console.log('[game-timer] isMyTurn:', isMyTurn);
+
+          // Обновляем таймер
+          turnTimer.textContent = formatTime(remainingSeconds);
+
+          // Обновляем метку статуса
+          if (turnStatusLabel) {
+            if (isMyTurn) {
+              turnStatusLabel.textContent = 'ВАШ ХОД';
+            } else {
+              const currentPlayer = result.players?.find(p => p.id_player === currentTurn.id_player);
+              turnStatusLabel.textContent = currentPlayer ? `ХОД: ${currentPlayer.login}` : 'ХОД ДРУГОГО';
+            }
+          }
+
+          // Если время истекло и это мой ход, можно показать предупреждение
+          if (isMyTurn && remainingSeconds !== null && remainingSeconds <= 0) {
+            turnTimer.style.color = '#ff0000'; // Красный цвет при истечении времени
+          } else {
+            turnTimer.style.color = ''; // Возвращаем обычный цвет
+          }
+
+        } catch (error) {
+          console.error('[game-timer] Ошибка обновления таймера:', error);
+          turnTimer.textContent = '--:--';
+        }
+      }
+
+      // Первое обновление сразу
+      updateTimer();
+
+      // Обновляем таймер каждую секунду
+      setInterval(updateTimer, 1000);
+    })();
+  </script>
+</body>
+</html>

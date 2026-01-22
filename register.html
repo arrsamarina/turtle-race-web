@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Регистрация - Черепашьи бега</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="turtles-background" id="turtlesBackground"></div>
+  
+  <div class="main-container">
+    <div class="content-box">
+      <h1 class="title-page">РЕГИСТРАЦИЯ</h1>
+      
+      <div class="nav-link">
+        ИЛИ <a href="login.html">ВХОД</a>
+      </div>
+
+      <form id="registerForm" onsubmit="handleRegister(event)">
+        <div class="form-group">
+          <label class="form-label" for="login">ЛОГИН</label>
+          <input 
+            type="text" 
+            id="login" 
+            name="login" 
+            class="form-input" 
+            required
+            autocomplete="username"
+          >
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="password">ПАРОЛЬ</label>
+          <input 
+            type="password" 
+            id="password" 
+            name="password" 
+            class="form-input" 
+            required
+            autocomplete="new-password"
+          >
+        </div>
+
+        <button type="submit" class="btn">ПРОДОЛЖИТЬ</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/main.js"></script>
+  <script>
+    // Инициализация декоративных черепах для страницы регистрации
+    initTurtlesBackground('turtlesBackground');
+
+    // Обработка формы регистрации
+    async function handleRegister(event) {
+      event.preventDefault();
+      
+      const form = event.target;
+      const formData = new FormData(form);
+      const login = formData.get('login');
+      const password = formData.get('password');
+
+      if (!login || !password) {
+        alert('Заполните все поля');
+        return;
+      }
+
+      try {
+        const result = await apiRegister(login, password);
+        
+        if (result.status === 'ok') {
+          // Успешная регистрация - перенаправляем на меню
+          window.location.href = 'menu.html';
+        } else {
+          // Обрабатываем ошибки регистрации
+          const errorCode = result.error || 'registration_failed';
+          let errorMessage = result.message || 'Ошибка регистрации';
+          
+          if (errorCode === 'user_already_exists') {
+            errorMessage = 'Пользователь с таким логином уже существует';
+          } else if (errorCode === 'short_nickname') {
+            errorMessage = 'Логин должен содержать минимум 3 символа';
+          } else if (errorCode === 'short_password') {
+            errorMessage = 'Пароль должен содержать минимум 3 символа';
+          }
+          
+          alert(errorMessage);
+        }
+      } catch (error) {
+        handleApiError(error);
+      }
+    }
+  </script>
+</body>
+</html>
+

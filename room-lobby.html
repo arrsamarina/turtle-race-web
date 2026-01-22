@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Комната - Черепашьи бега</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="turtles-background" id="turtlesBackground"></div>
+  
+  <div class="main-container">
+    <div class="content-box">
+      <div class="room-header">
+        <h1 class="room-title">ЖДЁМ ИГРОКОВ</h1>
+      </div>
+
+      <div class="players-list" id="playersList">
+        <!-- Список игроков будет заполнен через JavaScript -->
+      </div>
+
+      <div class="back-to-menu">
+        <a href="#" class="back-to-menu-link" onclick="handleLeaveLobby(event)">выйти из комнаты</a>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/main.js"></script>
+  <script>
+    // Инициализация декоративных черепах
+    initTurtlesBackground('turtlesBackground');
+
+    // Проверка авторизации
+    if (!checkAuth()) {
+      window.location.href = 'login.html';
+    }
+
+    // Получение параметров из URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const gameId = parseInt(urlParams.get('id')) || 0;
+    const slotsFromUrl = parseInt(urlParams.get('slots')) || 0;
+
+    if (!gameId) {
+      alert('Ошибка: не найден ID игры');
+      window.location.href = 'open-rooms.html';
+    }
+
+    let gameState = null;
+    let maxPlayers = 0;
+    let startRequested = false;
+    const myLogin = getLogin();
+
+    // Загрузка состояния лобби с сервера
+    async function loadLobbyState() {
+      try {
+        console.log('[room-lobby] Загрузка состояния игры, gameId =', gameId);
+        const result = await apiGetGameState(gameId);
+        console.log('[room-lobby] Ответ от сервера:', result);
+        
+        // Проверяем, является ли ответ успешным
+        // Новый формат ошибок: { status: "error", error: "..." }
+        if (result.status === 'error' || result.error) {
+          const errorCode = result.error || result.message || 'unknown_error';
+          console.error('[room-lobby] Ошибка в ответе:', errorCode);
+          
+          // Если ошибка - игрок не в лобби, автоматически перенаправляем в меню
+          if (errorCode === 'player_not_in_game') {
+            console.log('[room-lobby] Игрок не в лобби, автоматический выход');
+            window.location.href = 'menu.html';
+            return;
+          }
+          
+          alert('Ошибка загрузки состояния лобби: ' + errorCode);
+          window.location.href = 'open-rooms.html';
+          return;
+        }
+        
+        // Проверяем, что ответ содержит данные игры
+        const isSuccess = result.status === 'ok' || 
+                         (result.status !== 'error' && (Array.isArray(result.players) || result.game || result.id_game));
+        
+        if (isSuccess) {
+          gameState = result;
+          
+          // 1) Если в URL явно передано количество слотов (при создании/выборе комнаты),
+          // доверяем этому значению.
+          if (Number.isInteger(slotsFromUrl) && slotsFromUrl >= 2 && slotsFromUrl <= 5) {
+            maxPlayers = slotsFromUrl;
+          } else {
+            // 2) Иначе пробуем взять ограничение с бэкенда.
+            if (result.game) {
+              maxPlayers =
+                result.game.players_max ||
+                result.game.max_players ||
+                result.game.players_count_max ||
+                0;
+            }
+            
+            if (!maxPlayers) {
+              maxPlayers =
+                result.players_max ||
+                result.max_players ||
+                result.players_count_max ||
+                0;
+            }
+            
+            // 3) Если по какой‑то причине сервер не прислал явное ограничение,
+            // по умолчанию считаем игру дуэльной (2 игрока).
+            if (!maxPlayers) {
+              maxPlayers = 2;
+            }
+          }
+          
+          const playersCount = Array.isArray(result.players) ? result.players.length : 0;
+          
+          console.log('[room-lobby] ========== СОСТОЯНИЕ ЛОББИ ==========');
+          console.log('[room-lobby] maxPlayers =', maxPlayers);
+          console.log('[room-lobby] playersCount =', playersCount);
+          console.log('[room-lobby] players =', result.players);
+          console.log('[room-lobby] myLogin =', myLogin);
+          console.log('[room-lobby] current_turn =', result.current_turn);
+          console.log('[room-lobby] gameAlreadyStarted =', !!result.current_turn);
+          console.log('[room-lobby] startRequested =', startRequested);
+          
+          initPlayersList();
+
+          // ШАГ 0: Проверяем, находится ли текущий игрок в списке players
+          // Это нужно для обнаружения выхода игрока через другой токен
+          if (result.players && Array.isArray(result.players)) {
+            const playerInLobby = result.players.some(p => p.login === myLogin);
+            if (!playerInLobby) {
+              console.log('[room-lobby] Игрок не найден в списке players, автоматический выход из лобби');
+              // Автоматически перенаправляем в меню без модального окна
+              window.location.href = 'menu.html';
+              return;
+            }
+          }
+
+          // Проверяем, началась ли игра (есть ли текущий ход)
+          // ВАЖНО: current_turn != null означает, что игра реально стартовала на сервере
+          const gameAlreadyStarted = !!result.current_turn;
+
+          // ВАЖНО: Все игроки переходят на game.html только когда current_turn != null
+          // Это означает, что игра реально стартовала на сервере
+          if (gameAlreadyStarted) {
+            console.log('[room-lobby] ✅ Игра начата (current_turn != null), переход на game.html');
+            window.location.href = `game.html?id=${gameId}`;
+            return;
+          }
+
+          // Если игра ещё не началась и лобби полностью заполнено,
+          // владелец (игрок с turn_order = 1) вызывает start_game один раз
+          if (!gameAlreadyStarted && playersCount === maxPlayers && !startRequested) {
+            const owner = Array.isArray(result.players)
+              ? result.players.find(p => parseInt(p.turn_order) === 1)
+              : null;
+            
+            console.log('[room-lobby] Проверка владельца:');
+            console.log('[room-lobby] - owner =', owner);
+            console.log('[room-lobby] - owner?.login =', owner?.login);
+            console.log('[room-lobby] - myLogin =', myLogin);
+            console.log('[room-lobby] - owner?.login === myLogin =', owner?.login === myLogin);
+            
+            if (owner && owner.login === myLogin) {
+              console.log('[room-lobby] ✅ Лобби заполнено, вы владелец (turn_order=1). Стартуем игру...');
+              startRequested = true;
+              
+              // Вызываем start_game один раз
+              apiStartGame(gameId)
+                .then(result => {
+                  // Проверяем, не вернулась ли ошибка в новом формате
+                  if (result && (result.status === 'error' || result.error)) {
+                    const errorCode = result.error || result.message || 'unknown_error';
+                    console.error('[room-lobby] Ошибка при старте игры (в ответе):', errorCode, result);
+                    startRequested = false;
+                    
+                    // Формируем понятное сообщение об ошибке
+                    let errorMessage = 'Ошибка при старте игры';
+                    if (errorCode === 'not_enough_cards_in_deck') {
+                      errorMessage = 'Недостаточно карт в колоде. Возможно, игра была создана некорректно. Попробуйте создать новую комнату.';
+                    } else if (errorCode === 'game_already_started') {
+                      errorMessage = 'Игра уже начата';
+                    } else if (errorCode === 'not_enough_players') {
+                      errorMessage = 'Недостаточно игроков для старта';
+                    } else if (errorCode === 'not_owner') {
+                      errorMessage = 'Только владелец комнаты может начать игру';
+                    } else {
+                      errorMessage = 'Ошибка при старте игры: ' + errorCode;
+                    }
+                    
+                    alert(errorMessage);
+                    return;
+                  }
+                  
+                  console.log('[room-lobby] ✅ Игра успешно стартована:', result);
+                  // После успешного старта сразу проверяем состояние игры
+                  // чтобы все игроки (включая владельца) перешли на game.html
+                  setTimeout(() => {
+                    loadLobbyState();
+                  }, 500);
+                })
+                .catch(err => {
+                  console.error('[room-lobby] Исключение при старте игры:', err);
+                  // При ошибке сбрасываем флаг, чтобы можно было попробовать снова
+                  startRequested = false;
+                  
+                  // Проверяем формат ошибки
+                  let errorMessage = 'Ошибка при старте игры';
+                  if (err && typeof err === 'object') {
+                    if (err.status === 'error' || err.error) {
+                      const errorCode = err.error || err.message || 'unknown_error';
+                      if (errorCode === 'not_enough_cards_in_deck') {
+                        errorMessage = 'Недостаточно карт в колоде. Возможно, игра была создана некорректно. Попробуйте создать новую комнату.';
+                      } else {
+                        errorMessage = 'Ошибка при старте игры: ' + errorCode;
+                      }
+                    } else {
+                      errorMessage = 'Ошибка при старте игры: ' + (err.message || 'Неизвестная ошибка');
+                    }
+                  } else {
+                    errorMessage = 'Ошибка при старте игры: ' + (err.message || 'Неизвестная ошибка');
+                  }
+                  
+                  alert(errorMessage);
+                });
+            } else {
+              if (!owner) {
+                console.log('[room-lobby] ⚠️ Лобби заполнено, но владелец не найден (turn_order=1 не найден)');
+              } else {
+                console.log('[room-lobby] ⏳ Лобби заполнено, но текущий игрок не владелец. Ждем старта игры от владельца:', owner.login);
+              }
+            }
+          } else {
+            // Логируем, почему игра не стартует
+            if (gameAlreadyStarted) {
+              console.log('[room-lobby] ⏸️ Игра уже начата, пропускаем старт');
+            } else if (playersCount !== maxPlayers) {
+              console.log('[room-lobby] ⏸️ Лобби не заполнено:', playersCount, 'из', maxPlayers);
+            } else if (startRequested) {
+              console.log('[room-lobby] ⏸️ Запрос на старт уже отправлен, ждем ответа...');
+            }
+          }
+        } else {
+          console.error('[room-lobby] Ошибка в ответе:', result);
+          alert('Ошибка загрузки состояния лобби: ' + (result.error || result.message || 'unknown_error'));
+          window.location.href = 'open-rooms.html';
+        }
+      } catch (error) {
+        console.error('[room-lobby] Исключение при загрузке состояния:', error);
+        console.error('[room-lobby] Stack:', error.stack);
+        const errorMessage = error.message || 'unknown_error';
+        alert('Ошибка загрузки состояния лобби: ' + errorMessage);
+        if (typeof handleApiError === 'function') {
+          handleApiError(error);
+        }
+        window.location.href = 'open-rooms.html';
+      }
+    }
+
+    // Инициализация списка игроков
+    function initPlayersList() {
+      renderPlayers();
+    }
+
+    // Отрисовка списка игроков
+    function renderPlayers() {
+      const playersList = document.getElementById('playersList');
+      playersList.innerHTML = '';
+
+      if (!gameState || !Array.isArray(gameState.players)) {
+        playersList.innerHTML = '<div style="text-align: center; padding: 20px; color: #666;">Загрузка...</div>';
+        return;
+      }
+
+      // Сортируем игроков по порядку
+      const sortedPlayers = [...gameState.players].sort((a, b) => {
+        const orderA = a.turn_order || a.order || 0;
+        const orderB = b.turn_order || b.order || 0;
+        return orderA - orderB;
+      });
+
+      for (let i = 0; i < maxPlayers; i++) {
+        const playerItem = document.createElement('div');
+        playerItem.className = 'player-item';
+
+        const player = sortedPlayers[i];
+        if (player && player.login) {
+          // Формируем имя с дополнительными метками
+          let displayName = player.login;
+          
+          // Проверяем, является ли игрок текущим пользователем
+          if (player.login === myLogin) {
+            displayName += ' (вы)';
+          }
+          
+          playerItem.innerHTML = `<span class="player-number">${i + 1}.</span><span class="player-name">${displayName}</span>`;
+        } else {
+          playerItem.innerHTML = `<span class="player-number">${i + 1}.</span><span class="player-name-empty">-----</span>`;
+        }
+
+        playersList.appendChild(playerItem);
+      }
+    }
+
+    // Обработка выхода из лобби
+    async function handleLeaveLobby(event) {
+      if (event) event.preventDefault();
+
+      if (!gameId) {
+        window.location.href = 'menu.html';
+        return;
+      }
+
+      const confirmLeave = confirm('Выйти из комнаты? Вы перестанете быть участником этой игры.');
+      if (!confirmLeave) return;
+
+      try {
+        console.log('[room-lobby] Выход из лобби, gameId =', gameId);
+        const result = await apiLeaveLobby(gameId);
+        console.log('[room-lobby] Результат leave_lobby:', result);
+
+        // Ожидаемые варианты:
+        // - { status: 'ok', result: 'left_lobby', id_game, players_left, ... }
+        // - { status: 'ok', result: 'game_already_finished', id_game, ... }
+        // - { status: 'error', error: '...', ... }
+
+        if (result.status === 'ok') {
+          if (result.result === 'left_lobby') {
+            console.log('[room-lobby] Успешно вышли из лобби, игроков осталось:', result.players_left);
+            // Не показываем alert, просто переходим в меню
+          } else if (result.result === 'game_already_finished') {
+            alert('Игра уже завершена.');
+          }
+        } else if (result.status === 'error' || result.error) {
+          const errorCode = result.error || 'unknown_error';
+          let errorMessage = 'Ошибка при выходе из комнаты';
+          
+          if (errorCode === 'game_already_started_use_leave_active_game') {
+            errorMessage = 'Игра уже началась. Используйте выход из активной игры.';
+          } else if (errorCode === 'player_not_in_game') {
+            errorMessage = 'Вы не участвуете в этой игре.';
+          } else if (errorCode === 'game_not_found') {
+            errorMessage = 'Игра не найдена.';
+          } else if (errorCode === 'invalid_token') {
+            errorMessage = 'Требуется авторизация.';
+            window.location.href = 'login.html';
+            return;
+          }
+          
+          alert(errorMessage);
+        }
+      } catch (error) {
+        console.error('[room-lobby] Ошибка при выходе из лобби:', error);
+        if (typeof handleApiError === 'function') {
+          handleApiError(error);
+        } else {
+          alert('Ошибка при выходе из комнаты: ' + (error.message || 'Неизвестная ошибка'));
+        }
+      } finally {
+        // После выхода всегда отправляем в меню.
+        window.location.href = 'menu.html';
+      }
+    }
+
+    // Инициализация при загрузке страницы
+    loadLobbyState();
+
+    // Периодическое обновление состояния лобби
+    setInterval(() => {
+      if (gameId) {
+        loadLobbyState();
+      }
+    }, 2000);
+  </script>
+</body>
+</html>
+

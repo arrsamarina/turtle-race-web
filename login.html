@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Вход - Черепашьи бега</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="turtles-background" id="turtlesBackground"></div>
+  
+  <div class="main-container">
+    <div class="content-box">
+      <h1 class="title-page">ВХОД</h1>
+      
+      <div class="nav-link">
+        ИЛИ <a href="register.html">РЕГИСТРАЦИЯ</a>
+      </div>
+
+      <form id="loginForm" onsubmit="handleLogin(event)">
+        <div class="form-group">
+          <label class="form-label" for="login">ЛОГИН</label>
+          <input 
+            type="text" 
+            id="login" 
+            name="login" 
+            class="form-input" 
+            required
+            autocomplete="username"
+          >
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="password">ПАРОЛЬ</label>
+          <input 
+            type="password" 
+            id="password" 
+            name="password" 
+            class="form-input" 
+            required
+            autocomplete="current-password"
+          >
+        </div>
+
+        <button type="submit" class="btn">ПРОДОЛЖИТЬ</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/main.js"></script>
+  <script>
+    // Инициализация декоративных черепах для страницы входа
+    initTurtlesBackground('turtlesBackground');
+
+    // Обработка формы входа
+    async function handleLogin(event) {
+      event.preventDefault();
+      
+      const form = event.target;
+      const formData = new FormData(form);
+      const login = formData.get('login');
+      const password = formData.get('password');
+
+      if (!login || !password) {
+        alert('Заполните все поля');
+        return;
+      }
+
+      try {
+        const result = await apiLogin(login, password);
+        
+        if (result.status === 'ok') {
+          // Успешный вход - перенаправляем на меню
+          window.location.href = 'menu.html';
+        } else {
+          alert('Ошибка входа: ' + (result.error || 'Неизвестная ошибка'));
+        }
+      } catch (error) {
+        handleApiError(error);
+      }
+    }
+  </script>
+</body>
+</html>
+

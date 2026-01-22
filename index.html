@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Черепашьи бега</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="turtles-background" id="turtlesBackground"></div>
+  
+  <div class="main-container">
+    <div class="content-box">
+      <h1 class="title-main" id="mainTitle">
+        ЧЕРЕПАШЬИ<br>БЕГА
+      </h1>
+    </div>
+  </div>
+
+  <script src="js/main.js"></script>
+  <script>
+    // Инициализация декоративных черепах для главной страницы
+    initTurtlesBackground('turtlesBackground');
+    
+    // Обработчик клика по заголовку - переход на страницу входа
+    const mainTitle = document.getElementById('mainTitle');
+    if (mainTitle) {
+      mainTitle.style.cursor = 'pointer';
+      mainTitle.addEventListener('click', function() {
+        window.location.href = 'login.html';
+      });
+    }
+  </script>
+</body>
+</html>
+
