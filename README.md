@@ -6,6 +6,22 @@
 
 "Черепашьи бега" - это многопользовательская онлайн-игра, основанная на классической настольной игре. Игроки получают случайную черепаху и карты, с помощью которых перемещают черепах по треку. Цель игры - привести свою черепаху к финишу первой, не раскрывая её принадлежность другим игрокам.
 
+## Првеью
+
+![Входной экран](./screenshots/preview.png)
+![Регистрация](./screenshots/registration.png)
+![Авторизация](./screenshots/login.png)
+![Меню](./screenshots/menu.png)
+![Правила](./screenshots/rules.png)
+![Создание комнаты](./screenshots/createroom.png)
+![Список доступных комнат](./screenshots/openrooms.png)
+![Созданная комната](./screenshots/createdlobbby.png)
+![Список доступных комнат](./screenshots/openrooms2.png)
+![Игра](./screenshots/game.png)
+![Игра](./screenshots/game2.png)
+![Выбор целевой черепахи](./screenshots/turtlechoosing.png)
+![Результаты](./screenshots/results.png)
+
 ### Основные особенности
 
 - Многопользовательская игра (2-5 игроков)
